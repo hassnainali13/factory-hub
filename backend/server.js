@@ -68,12 +68,6 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
 });
 
 // Start server
-if (require.main === module) {
-  app.listen(process.env.PORT || 5000, () => {
-    console.log("Server running locally");
-  });
-}
-
-module.exports = app;
-
-// module.exports = app;
+app.listen(process.env.PORT, () => {
+  console.log(`Server is running on port ${process.env.PORT}`);
+});
