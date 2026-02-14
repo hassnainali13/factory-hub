@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ export default function Login() {
     password: "",
   });
 
+  const [showPassword, setShowPassword] = useState(false); // ✅ NEW
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -22,7 +24,6 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // ✅ LOGIN API
       const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -36,10 +37,8 @@ export default function Login() {
         return;
       }
 
-      // ✅ Clear old session
       localStorage.clear();
 
-      // ✅ Save token + user
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
@@ -47,13 +46,11 @@ export default function Login() {
 
       console.log("LOGIN USER:", user);
 
-      // ✅ SUPERADMIN check
       if (user.role === "superadmin") {
         navigate("/superadmin/dashboard");
         return;
       }
 
-      // ✅ FINAL LOGIC (Workspace for normal users)
       if (!user.workspaceId) {
         navigate("/workspace-options");
         return;
@@ -69,7 +66,6 @@ export default function Login() {
         return;
       }
 
-      // fallback
       navigate("/workspace-options");
     } catch (err) {
       console.log(err);
@@ -85,9 +81,7 @@ export default function Login() {
         <h1 className="text-2xl font-semibold text-slate-900">
           Login to FactoryHub
         </h1>
-        <p className="text-sm text-slate-500 mt-1">
-         login here.
-        </p>
+        <p className="text-sm text-slate-500 mt-1">login here.</p>
 
         {error && (
           <div className="mt-4 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">
@@ -109,20 +103,25 @@ export default function Login() {
             />
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-slate-700">
-              Password
-            </label>
-            <input
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              type="password"
-              placeholder="Enter password"
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
-              required
-            />
-          </div>
+          <div className="relative mt-2">
+  <input
+    name="password"
+    value={form.password}
+    onChange={handleChange}
+    type={showPassword ? "text" : "password"}
+    placeholder="Enter password"
+    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
+    required
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowPassword(!showPassword)}
+    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-600 transition-colors"
+  >
+    {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+  </button>
+</div>
 
           <button
             disabled={loading}

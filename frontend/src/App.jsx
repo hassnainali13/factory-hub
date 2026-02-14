@@ -7,6 +7,7 @@ import WorkspaceOptions from "./pages/auth/WorkspaceOptions";
 import CreateWorkspace from "./pages/auth/CreateWorkspace";
 import ProcessingPage from "./pages/auth/ProcessingPage";
 import SignupSuccess from "./pages/auth/SignupSuccess";
+import DepartmentHeadDashboard from "./pages/department/DepartmentHeadDashboard";
 
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
       {/* Dashboards */}
       <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
       <Route path="/workspace/dashboard" element={<WorkspaceManagerDashboard />} />
+      <Route path="/department/dashboard" element={<DepartmentHeadDashboard />} />
       {/* Default route */}
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<div>404 | Page Not Found</div>} />

@@ -134,8 +134,7 @@ export default function SuperAdminDashboard() {
   // ✅ Ab returns
   if (loading) return <p>Loading workspaces...</p>;
   if (error) return <p className="text-red-500">Error: {error}</p>;
-  if (!workspaces || workspaces.length === 0)
-    return <p>No workspaces found.</p>;
+
 
   const totalWorkspaces = workspaces?.length || 0;
 
@@ -271,10 +270,10 @@ export default function SuperAdminDashboard() {
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                Global Dashboard
+                FactoryHub, Dashboard
               </h1>
               <p className="mt-1 text-sm text-slate-500">
-                Overview of workspaces, admins, employees and approvals.
+                Welcome back! Here's an overview of your Workspaces performance.
               </p>
             </div>
 
@@ -474,7 +473,6 @@ export default function SuperAdminDashboard() {
                 WorkspaceDetailModal={WorkspaceDetailModal}
                 apiBaseUrl="http://localhost:5000"
               />
-             
 
               {/* Show More */}
               {workspaces.length > workspaceLimit && (
@@ -489,33 +487,33 @@ export default function SuperAdminDashboard() {
               )}
             </>
           )}
-           {/* ========================= */}
-              {/* Aprovals PAGE */}
-              {/* ========================= */}
-              {activePage === "approvals" && (
-                
-                <WorkspacesOverviewTable
-                  title="Pending Approvals"
-                  workspaces={pendingWorkspaces} // ✅ only pending
-                  approveWorkspace={approveWorkspace}
-                  rejectWorkspace={rejectWorkspace}
-                  openWorkspace={openWorkspace}
-                  setOpenWorkspace={setOpenWorkspace}
-                  onCloseModal={() => setOpenWorkspace(null)}
-                  WorkspaceDetailModal={WorkspaceDetailModal}
-                  apiBaseUrl="http://localhost:5000"
-                />
-                
-              )}
+          {/* ========================= */}
+          {/* Aprovals PAGE */}
+          {/* ========================= */}
+          {activePage === "approvals" && (
+            <WorkspacesOverviewTable
+              title="Pending Approvals"
+              workspaces={pendingWorkspaces} // ✅ only pending
+              approveWorkspace={approveWorkspace}
+              rejectWorkspace={rejectWorkspace}
+              openWorkspace={openWorkspace}
+              setOpenWorkspace={setOpenWorkspace}
+              onCloseModal={() => setOpenWorkspace(null)}
+              WorkspaceDetailModal={WorkspaceDetailModal}
+              apiBaseUrl="http://localhost:5000"
+            />
+          )}
 
           {/* Baaki pages future me */}
-          {activePage !== "dashboard" && activePage !== "workspaces" && activePage !== "approvals" && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm text-slate-600">
-                This section will be implemented soon.
-              </p>
-            </div>
-          )}
+          {activePage !== "dashboard" &&
+            activePage !== "workspaces" &&
+            activePage !== "approvals" && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <p className="text-sm text-slate-600">
+                  This section will be implemented soon.
+                </p>
+              </div>
+            )}
         </main>
       </div>
     </div>
