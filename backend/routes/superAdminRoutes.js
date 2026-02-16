@@ -1,3 +1,5 @@
+//backend\routes\superAdminRoutes.js
+
 const express = require("express");
 const { getAllWorkspaces, approveWorkspace, rejectWorkspace } = require("../controllers/superAdminController");
 const authenticate = require("../middleware/authMiddleware");

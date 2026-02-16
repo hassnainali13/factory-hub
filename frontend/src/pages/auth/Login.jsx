@@ -1,6 +1,8 @@
+//frontend\src\pages\auth\Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import axiosInstance from "../../api/axiosInstance"; // ✅ import your axiosInstance
 
 export default function Login() {
   const navigate = useNavigate();
@@ -24,26 +26,14 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || "Login failed");
-        return;
-      }
+      const res = await axiosInstance.post("/auth/login", form);
+      const data = res.data;
 
       localStorage.clear();
-
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
       const user = data.user;
-
       console.log("LOGIN USER:", user);
 
       if (user.role === "superadmin") {
@@ -51,13 +41,32 @@ export default function Login() {
         return;
       }
 
+      // ✅ Department request logic
+      // ✅ Department request logic
+      if (user.requestStatus === "Pending") {
+        navigate("/workspace/department-processing");
+        return;
+      }
+
+      if (user.requestStatus === "Approved") {
+        navigate("/department/dashboard");
+        return;
+      }
+
+      if (user.requestStatus === "Rejected") {
+        // independent user
+        navigate("/workspace-options"); // or your independent user page
+        return;
+      }
+
+      // ✅ Workspace logic
       if (!user.workspaceId) {
         navigate("/workspace-options");
         return;
       }
 
       if (user.workspaceStatus === "pending") {
-        navigate("/workspace/processing");
+        navigate(`/workspace/processing/${user.workspaceId}`); // ✅ fixed with ID
         return;
       }
 
@@ -66,10 +75,11 @@ export default function Login() {
         return;
       }
 
+      // fallback
       navigate("/workspace-options");
     } catch (err) {
       console.log(err);
-      setError("Server error, try again");
+      setError(err.response?.data?.message || "Server error, try again");
     } finally {
       setLoading(false);
     }
@@ -104,24 +114,24 @@ export default function Login() {
           </div>
 
           <div className="relative mt-2">
-  <input
-    name="password"
-    value={form.password}
-    onChange={handleChange}
-    type={showPassword ? "text" : "password"}
-    placeholder="Enter password"
-    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
-    required
-  />
+            <input
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter password"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
+              required
+            />
 
-  <button
-    type="button"
-    onClick={() => setShowPassword(!showPassword)}
-    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-600 transition-colors"
-  >
-    {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
-  </button>
-</div>
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-600 transition-colors"
+            >
+              {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+            </button>
+          </div>
 
           <button
             disabled={loading}

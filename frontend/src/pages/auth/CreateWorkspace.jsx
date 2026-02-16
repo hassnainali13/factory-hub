@@ -1,3 +1,4 @@
+//frontend\src\pages\auth\CreateWorkspace.jsx
 import useWorkspaceCreation from "../../hooks/useWorkspaceCreation";
 
 export default function CreateWorkspace() {

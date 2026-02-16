@@ -1,3 +1,5 @@
+//backend\routes\workspaceRoutes.js
+
 const express = require("express");
 const upload = require("../middleware/multer"); // Import multer for file uploads
 const {
@@ -5,6 +7,8 @@ const {
   requestWorkspace,
   joinWorkspace,
   getAllWorkspaces,
+  getWorkspaceDetail,
+
 } = require("../controllers/workspaceController");
 const authenticate = require("../middleware/authMiddleware");
 
@@ -20,6 +24,8 @@ router.post("/request", authenticate, requestWorkspace);
 router.post("/join", authenticate, joinWorkspace);
 
 router.get("/", authenticate, getAllWorkspaces); // public workspace list
+router.get("/:id", authenticate, getWorkspaceDetail);
+
 
 
 

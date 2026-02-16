@@ -1,3 +1,4 @@
+//frontend\src\hooks\useAuthActions.js
 import useAuth from "../hooks/useAuth"; // your auth hook
 
 export default function useAuthActions() {

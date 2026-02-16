@@ -1,3 +1,4 @@
+//frontend\src\hooks\useUserProfile.js
 import useAuth from "../hooks/useAuth"; // your auth hook
 
 export default function useUserProfile() {

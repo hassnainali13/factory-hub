@@ -1,3 +1,4 @@
+//frontend\src\pages\superadmin\SuperAdminDashboard.jsx
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -6,7 +7,7 @@ import SidebarItem from "../../components/SidebarItem";
 import KpiCard from "../../components/KpiCard";
 import StatusPill from "../../components/StatusPill";
 import useAllWorkspaces from "../../hooks/useViewWorkspaces";
-import WorkspaceDetailModal from "../../pages/workspace/WorkspaceDetailModal";
+import WorkspaceDetailModal from "./WorkspaceDetailModal";
 
 import WorkspacesOverviewTable from "./WorkspacesOverviewTable";
 
@@ -132,9 +133,20 @@ export default function SuperAdminDashboard() {
   );
 
   // ✅ Ab returns
-  if (loading) return <p>Loading workspaces...</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+        <div className="text-lg font-medium text-slate-600">
+          Loading dashboard...
+        </div>
+        <div className="text-sm text-slate-400 mt-1">
+          Please wait while we fetch your workspace data.
+        </div>
+      </div>
+    );
+  }
   if (error) return <p className="text-red-500">Error: {error}</p>;
-
 
   const totalWorkspaces = workspaces?.length || 0;
 

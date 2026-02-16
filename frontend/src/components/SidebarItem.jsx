@@ -17,6 +17,7 @@ function SidebarItem({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={
         "w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition " +

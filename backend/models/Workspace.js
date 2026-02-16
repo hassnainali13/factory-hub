@@ -1,35 +1,32 @@
+//backend\models\Workspace.js
+
 const mongoose = require("mongoose");
 
 const workspaceSchema = new mongoose.Schema(
   {
-    name: {
+    name: { type: String, required: true },
+    code: { type: String, required: true, unique: true },
+    logo: { type: String, default: null },
+
+    workspaceRole: {       // Assigned on approve
       type: String,
-      required: true,
-    },
-    code: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    status: {
-      type: String,
-      default: "pending",
-    },
-    role: {
-      type: String,
-      default: "general_manager",
-    },
-    logo: {
-      type: String,
+      enum: ["general_manager", "industry_head", null],
       default: null,
     },
-    createdBy: {
+
+    status: {              // Pending / Active / Disabled
+      type: String,
+      enum: ["pending", "active", "disabled"],
+      default: "pending",
+    },
+
+    createdBy: {           // User ID who created workspace
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Workspace", workspaceSchema);

@@ -27,14 +27,6 @@ const WorkspacesOverviewTable = ({
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-        {onViewAll && (
-          <button
-            onClick={onViewAll}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
-          >
-            View all
-          </button>
-        )}
       </div>
 
       {/* Table */}
@@ -108,26 +100,14 @@ const WorkspacesOverviewTable = ({
                         <button
                           onClick={() => {
                             if (!setOpenWorkspace) return;
-                            const workspaceLogo = w?.logo
-                              ? w.logo.startsWith("http")
-                                ? w.logo
-                                : `${apiBaseUrl}/${w.logo.replace(/\\/g, "/")}`
-                              : "/placeholder-logo.png";
-                            const admin = w?.createdBy || {};
-                            setOpenWorkspace({
-                              logo: workspaceLogo,
-                              workspaceName: w?.name || "Unnamed Workspace",
-                              userName: admin?.name || "N/A",
-                              userEmail: admin?.email || "N/A",
-                              role: admin?.role || w?.role || "N/A",
-                              code: w?.code || "N/A",
-                            });
+                            setOpenWorkspace(w._id);
                           }}
                           className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition inline-flex items-center justify-center"
                         >
                           <FaEye className="h-4 w-4" />
                         </button>
                       )}
+
                       {status === "rejected" && (
                         <button
                           className="p-2 rounded-lg text-slate-300 cursor-not-allowed inline-flex items-center justify-center"
@@ -158,11 +138,13 @@ const WorkspacesOverviewTable = ({
       )}
 
       {openWorkspace && WorkspaceDetailModal && (
-        <WorkspaceDetailModal
-          workspace={openWorkspace}
-          onClose={() => onCloseModal?.()}
-        />
-      )}
+  <WorkspaceDetailModal
+    workspaceId={openWorkspace}
+    apiBaseUrl={apiBaseUrl}
+    onClose={() => onCloseModal?.()}
+  />
+)}
+
     </section>
   );
 };

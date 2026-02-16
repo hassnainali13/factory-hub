@@ -1,3 +1,4 @@
+//frontend\src\pages\auth\SignupSuccess.jsx
 import { useNavigate } from "react-router-dom";
 
 export default function WorkspaceOptions() {

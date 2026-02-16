@@ -1,3 +1,5 @@
+//backend\controllers\workspaceController.js
+
 const mongoose = require("mongoose");
 const Workspace = require("../models/Workspace");
 const User = require("../models/User");
@@ -14,7 +16,9 @@ exports.createWorkspace = async (req, res) => {
 
     // Validate input fields
     if (!workspaceName || !workspaceCode || !role) {
-      return res.status(400).json({ message: "Workspace name, code, and role are required" });
+      return res
+        .status(400)
+        .json({ message: "Workspace name, code, and role are required" });
     }
 
     console.log("Creating workspace for user:", req.userId);
@@ -35,21 +39,24 @@ exports.createWorkspace = async (req, res) => {
     const workspace = await Workspace.create({
       name: workspaceName,
       code: workspaceCode,
-      status: "pending",  // Initial status as pending
-      createdBy: req.userId,  // Correct user ID
-      logo: req.file?.path || null,  // Optional logo file
-      role: role, // Assign role to workspace (if needed)
+      status: "pending",
+      createdBy: req.userId,
+      logo: req.file?.path || null,
+      workspaceRole: role,
     });
 
     // Link workspace to user and assign role
-    user.workspaceId = workspace._id;  // Assign workspace to user
-    user.role = role;  // Assign the role to the user
+    user.workspaceId = workspace._id; // Assign workspace to user
+    user.role = role; // Assign the role to the user
     await user.save();
+
+    // ✅ Convert to plain object before sending to avoid 500
+    const workspaceObj = workspace.toObject();
 
     // Return success response with workspace details
     res.status(201).json({
       message: "Workspace created successfully and role assigned to user",
-      workspace,
+      workspace: workspaceObj,
     });
   } catch (error) {
     console.error("Workspace creation error:", error);
@@ -57,13 +64,18 @@ exports.createWorkspace = async (req, res) => {
   }
 };
 
+// The rest of your controller stays exactly the same
+
+
 exports.requestWorkspace = async (req, res) => {
   try {
     const { userId, workspaceName, workspaceCode } = req.body;
 
     // Validate input fields
     if (!userId || !workspaceName || !workspaceCode) {
-      return res.status(400).json({ message: "User ID, workspace name, and code are required" });
+      return res
+        .status(400)
+        .json({ message: "User ID, workspace name, and code are required" });
     }
 
     // Check if workspace code already exists
@@ -76,8 +88,8 @@ exports.requestWorkspace = async (req, res) => {
     const workspace = await Workspace.create({
       name: workspaceName,
       code: workspaceCode,
-      status: "pending",  // Workspace status set to pending
-      createdBy: userId,  // User ID who is requesting
+      status: "pending", // Workspace status set to pending
+      createdBy: userId, // User ID who is requesting
     });
 
     // Update the user's role to admin and assign the workspace ID
@@ -92,7 +104,9 @@ exports.requestWorkspace = async (req, res) => {
     });
   } catch (error) {
     console.error("Workspace request error:", error);
-    res.status(500).json({ message: "Server error while processing workspace request" });
+    res
+      .status(500)
+      .json({ message: "Server error while processing workspace request" });
   }
 };
 
@@ -102,11 +116,14 @@ exports.joinWorkspace = async (req, res) => {
 
     // Validate input fields
     if (!userId || !workspaceCode) {
-      return res.status(400).json({ message: "User ID and workspace code are required" });
+      return res
+        .status(400)
+        .json({ message: "User ID and workspace code are required" });
     }
 
-    // Find the workspace by the provided code
-    const workspace = await Workspace.findOne({ code: workspaceCode });
+    const workspace = await Workspace.findOne({
+      code: { $regex: `^${workspaceCode}$`, $options: "i" }, // case-insensitive
+    });
 
     if (!workspace) {
       return res.status(404).json({ message: "Workspace not found" });
@@ -122,34 +139,46 @@ exports.joinWorkspace = async (req, res) => {
       workspaceId: workspace._id,
     });
 
-    res.status(200).json({ message: "Joined workspace successfully", workspaceId: workspace._id });
+    res.status(200).json({
+      message: "Joined workspace successfully",
+      workspaceId: workspace._id,
+    });
   } catch (error) {
     console.error("Join workspace error:", error);
     res.status(500).json({ message: "Server error while joining workspace" });
   }
 };
 
-
+// GET all workspaces
 // GET all workspaces
 exports.getAllWorkspaces = async (req, res) => {
   try {
     const workspaces = await Workspace.find()
-      .populate("createdBy", "name email role") // populate name, email, role
+      .populate("createdBy", "name email role") // 👈 yahan se userEmail ayega
       .sort({ createdAt: -1 });
 
     const formatted = await Promise.all(
       workspaces.map(async (ws) => {
         const employees = await User.countDocuments({ workspaceId: ws._id });
+
         return {
           _id: ws._id,
-          name: ws.name,
-          admin: ws.createdBy?.name || "N/A",
-          adminEmail: ws.createdBy?.email || "N/A",
-          adminRole: ws.createdBy?.role || "N/A",
-          employees,
-          status: ws.status,
-          logo: ws.logo || null,
+
+          // Workspace info
+          workspaceName: ws.name,
           code: ws.code,
+          logo: ws.logo || null,
+          status: ws.status,
+
+          // Workspace role (from workspace schema)
+          workspaceRole: ws.workspaceRole || null,
+
+          // Creator info
+          userName: ws.createdBy?.name || "N/A",
+          userEmail: ws.createdBy?.email || "N/A",
+          userRole: ws.createdBy?.role || "N/A",
+
+          employees,
         };
       })
     );
@@ -158,5 +187,35 @@ exports.getAllWorkspaces = async (req, res) => {
   } catch (error) {
     console.error("Get workspaces error:", error);
     res.status(500).json({ message: "Server error while fetching workspaces" });
+  }
+};
+exports.getWorkspaceDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const workspace = await Workspace.findById(id).populate(
+      "createdBy",
+      "name email role"
+    );
+
+    if (!workspace) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    res.status(200).json({
+      _id: workspace._id,
+      workspaceName: workspace.name,
+      code: workspace.code,
+      logo: workspace.logo,
+      status: workspace.status,
+      workspaceRole: workspace.workspaceRole,
+
+      userName: workspace.createdBy?.name || "N/A",
+      userEmail: workspace.createdBy?.email || "N/A",
+      userRole: workspace.createdBy?.role || "N/A",
+    });
+  } catch (error) {
+    console.error("Workspace detail error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };

@@ -10,6 +10,9 @@ const authRoutes = require("./routes/authRoutes"); // Importing routes
 const workspaceRoutes = require("./routes/workspaceRoutes"); // Import workspace routes
 const User = require("./models/User"); // Import User model
 const superAdminRoutes = require("./routes/superAdminRoutes"); // ✅ import
+const joinRoutes = require("./routes/joinRoutes");
+const departmentRoutes = require("./routes/departmentRoutes");
+
 
 const app = express();
 
@@ -48,6 +51,8 @@ const authenticateToken = (req, res, next) => {
 app.use("/api/auth", authRoutes); // Register auth routes
 app.use("/api/workspaces", workspaceRoutes); // Register workspace routes
 app.use("/api/superadmin", superAdminRoutes); // ✅ mount
+app.use("/api/join", joinRoutes); // ✅ mount join routes
+app.use("/api/departments", departmentRoutes);
 
 // Protected route to get the authenticated user's data
 app.get("/api/auth/me", authenticateToken, async (req, res) => {

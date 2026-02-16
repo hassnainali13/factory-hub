@@ -1,3 +1,4 @@
+//frontend\src\hooks\useWorkspaceCreation.js
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -77,17 +78,18 @@ const useWorkspaceCreation = () => {
 
       setSuccess("Workspace created successfully! Waiting for approval.");
 
+      // Navigate with workspace ID
       setTimeout(() => {
-        navigate("/workspace/processing");
+        navigate(`/workspace/processing/${data.workspace._id}`);
       }, 2000);
 
+      // Reset form
       setForm({
         workspaceName: "",
         workspaceCode: "",
         role: "general_manager",
         logo: null,
       });
-
     } catch (err) {
       console.error("Workspace creation error:", err);
       setError("Server error. Please try again.");
