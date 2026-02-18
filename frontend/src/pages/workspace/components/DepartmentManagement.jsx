@@ -1,3 +1,4 @@
+//frontend\src\pages\workspace\components\DepartmentManagement.jsx
 import React, { useState, useEffect } from "react";
 import { Plus, Users } from "lucide-react";
 import {

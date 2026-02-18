@@ -12,13 +12,14 @@ export default function GMRequests() {
       setLoading(true);
       const res = await axiosInstance.get("/join/pending-requests");
       // Map backend response to table fields
-      const mapped = res.data.map((req) => ({
-        id: req._id,
-        department: req.departmentName,
-        head: req.name,
-        employees: "-", // optional, can fetch if needed
-        status: "pending",
-      }));
+     const mapped = res.data.map((req) => ({
+  _id: req._id, // ✅ IMPORTANT
+  department: req.departmentName,
+  head: req.name,
+  employees: "-",
+  status: "pending",
+}));
+
       setPendingRequests(mapped);
     } catch (err) {
       console.error(err);

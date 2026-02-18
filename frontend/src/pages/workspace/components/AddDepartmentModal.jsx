@@ -1,3 +1,4 @@
+//frontend\src\pages\workspace\components\AddDepartmentModal.jsx
 import React, { useState } from "react";
 import { X } from "lucide-react";
 

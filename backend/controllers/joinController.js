@@ -1,28 +1,61 @@
 //backend\controllers\joinController.js
-
 const User = require("../models/User");
 const Workspace = require("../models/Workspace");
 const Department = require("../models/Department");
 
 // 1️⃣ Workspace preview
+// exports.joinWorkspacePreview = async (req, res) => {
+//   try {
+//     const { workspaceCode } = req.body;
+
+//     const workspace = await Workspace.findOne({ code: workspaceCode }).populate(
+//       "createdBy",
+//       "name email"
+//     );
+
+//     if (!workspace) {
+//       return res.status(404).json({ message: "Workspace not exists" });
+//     }
+
+//     const departments = await Department.find({
+//       workspaceId: workspace._id,
+//       status: { $in: ["active", "pending", "disabled"] },
+//     }).populate("head", "name email role requestStatus");
+
+//     res.json({
+//       workspaceId: workspace._id,
+//       name: workspace.name,
+//       logo: workspace.logo,
+//       generalManager: workspace.createdBy?.name || "—",
+//       departments,
+//     });
+//   } catch (err) {
+//     console.error("joinWorkspacePreview error:", err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
+// 1️⃣ Workspace preview (UPDATED)
 exports.joinWorkspacePreview = async (req, res) => {
   try {
     const { workspaceCode } = req.body;
 
     const workspace = await Workspace.findOne({ code: workspaceCode }).populate(
       "createdBy",
-      "name email workspacerole",
+      "name email"
     );
 
     if (!workspace) {
       return res.status(404).json({ message: "Workspace not exists" });
     }
 
-    // show only Active + Pending departments
+    // ✅ IMPORTANT: headsRequestedBy include karna zaroori hai
     const departments = await Department.find({
       workspaceId: workspace._id,
-      status: { $in: ["active", "pending"] },
-    }).select("name role status head");
+      status: { $in: ["active", "pending", "disabled"] },
+    })
+      .select("name department status head headsRequestedBy")
+      .populate("head", "name email role requestStatus");
 
     res.json({
       workspaceId: workspace._id,
@@ -37,7 +70,9 @@ exports.joinWorkspacePreview = async (req, res) => {
   }
 };
 
-// 2️⃣ Send request to become department head
+
+// 2️⃣ Send request to join a department (existing)
+// 2️⃣ Send request to join a department (UPDATED)
 exports.sendDepartmentRequest = async (req, res) => {
   try {
     const { departmentId } = req.body;
@@ -49,68 +84,110 @@ exports.sendDepartmentRequest = async (req, res) => {
     const user = await User.findById(req.userId);
     const department = await Department.findById(departmentId);
 
-    if (!user || !department)
+    if (!user || !department) {
       return res.status(404).json({ message: "User or Department not found" });
-
-    // ✅ If department head already assigned
-    if (department.head) {
-      return res.status(400).json({
-        message: "Is department ka head already assigned hai",
-      });
     }
 
-    // ✅ If user already has pending request
+    const userIdStr = user._id.toString();
+
+    // ✅ If department already active and head assigned
+    if (department.status === "active" && department.head) {
+      return res
+        .status(400)
+        .json({ message: "Department head already assigned" });
+    }
+
+    // ✅ If user already has pending request anywhere
     if (user.requestStatus === "pending") {
-      return res.status(400).json({
-        message: "Aapki request already pending hai",
-      });
+      return res
+        .status(400)
+        .json({ message: "Aapki request already pending hai" });
     }
 
-    // ✅ Update user
-    user.workspaceId = department.workspaceId;
-    user.departmentId = department._id; // future staff feature ready
+    // ✅ Ensure headsRequestedBy exists
+    if (!department.headsRequestedBy) department.headsRequestedBy = [];
+
+    // ✅ Check if same user already requested this department
+    const alreadyRequested = department.headsRequestedBy
+      .map((id) => id.toString())
+      .includes(userIdStr);
+
+    if (alreadyRequested) {
+      return res
+        .status(400)
+        .json({ message: "Aapki request already pending hai" });
+    }
+
+    // ✅ Push user in requested list
+    department.headsRequestedBy.push(user._id);
+
+    // ✅ Make department pending (only if not active)
+    if (department.status !== "active") {
+      department.status = "pending";
+    }
+
+    await department.save();
+
+    // ✅ Update user status
+    user.departmentId = department._id;
     user.requestStatus = "pending";
-    user.role = "user"; // default until approved
+    user.role = "user";
     await user.save();
 
-    res.json({
-      message: "Tumhari request General Manager ko chali gai hai",
-    });
+    res.json({ message: "Tumhari request General Manager ko chali gai hai" });
   } catch (err) {
     console.error("sendDepartmentRequest error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// 3️⃣ Dashboard status (Login ke baad redirect logic)
-exports.dashboardStatus = async (req, res) => {
+
+
+// 2️⃣a Send request from DepartmentHeadRequestPage.jsx
+exports.sendDepartmentHeadRequest = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).populate(
-      "departmentId",
-      "name role workspaceId",
-    );
+    const { workspaceId, departmentId } = req.body;
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!workspaceId || !departmentId) {
+      return res.status(400).json({ message: "workspaceId & departmentId required" });
+    }
 
-    if (!user.workspaceId) return res.json({ type: "noWorkspace" });
+    const user = await User.findById(req.userId);
+    const department = await Department.findById(departmentId);
+
+    if (!user || !department) return res.status(404).json({ message: "User or Department not found" });
 
     if (user.requestStatus === "pending") {
-      return res.json({
-        type: "pending",
-        department: user.departmentId,
-      });
+      return res.status(400).json({ message: "Aapki request already pending hai" });
     }
 
-    if (user.requestStatus === "Approved") {
-      return res.json({
-        type: "assigned",
-        department: user.departmentId,
-      });
+    user.departmentId = department._id;
+    user.requestStatus = "pending";
+    user.role = "user";
+    await user.save();
+
+    if (department.status === "disabled" || department.status === "pending") {
+      department.status = "pending";
+      await department.save();
     }
 
-    if (user.requestStatus === "Rejected") {
-      return res.json({ type: "independent" });
-    }
+    res.json({ message: "Department head request sent successfully" });
+  } catch (err) {
+    console.error("sendDepartmentHeadRequest error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// 3️⃣ Dashboard status
+exports.dashboardStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).populate("departmentId", "department status workspaceId");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user.departmentId) return res.json({ type: "noDepartment" });
+    if (user.requestStatus === "pending") return res.json({ type: "pending", department: user.departmentId });
+    if (user.requestStatus === "approved") return res.json({ type: "assigned", department: user.departmentId });
+    if (user.requestStatus === "rejected") return res.json({ type: "independent" });
 
     return res.json({ type: "independent" });
   } catch (err) {
@@ -125,47 +202,54 @@ exports.approveRequest = async (req, res) => {
     const user = await User.findById(req.params.userId);
 
     if (!user) return res.status(404).json({ message: "User not found" });
-    if (!user.departmentId)
-      return res
-        .status(400)
-        .json({ message: "User has no department request" });
 
-    const department = await Department.findById(user.departmentId);
-    if (!department)
-      return res.status(404).json({ message: "Department not found" });
-
-    if (department.head) {
-      return res
-        .status(400)
-        .json({ message: "Department head already assigned" });
+    if (!user.departmentId) {
+      return res.status(400).json({ message: "User has no department request" });
     }
 
-    // ✅ Approve user
-    user.requestStatus = "Approved";
+    const department = await Department.findById(user.departmentId);
+
+    if (!department) return res.status(404).json({ message: "Department not found" });
+
+    // ❌ If already active
+    if (department.status === "active" && department.head) {
+      return res.status(400).json({ message: "Department head already assigned" });
+    }
+
+    // ✅ Approve this user
+    user.requestStatus = "approved";
     user.role = "department_head";
     await user.save();
 
-    // ✅ Assign department head
+    // ✅ Activate department
     department.head = user._id;
     department.status = "active";
+    department.headsRequestedBy = []; // clear all requests
     await department.save();
 
-    // ✅ Reject other pending requests for same department
+    // ✅ Reject all other pending users (make null)
     await User.updateMany(
       {
         _id: { $ne: user._id },
         departmentId: department._id,
         requestStatus: "pending",
       },
-      { $set: { requestStatus: "Rejected", departmentId: null, role: "user" } },
+      {
+        $set: {
+          requestStatus: null,
+          departmentId: null,
+          role: "user",
+        },
+      }
     );
 
-    res.json({ message: "Request approved successfully" });
+    res.json({ message: "Request approved", department, user });
   } catch (err) {
     console.error("approveRequest error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // 5️⃣ GM rejects request
 exports.rejectRequest = async (req, res) => {
@@ -174,35 +258,73 @@ exports.rejectRequest = async (req, res) => {
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    user.workspaceId = null;
+    const departmentId = user.departmentId;
+
+    // ✅ Reject user -> make null
     user.departmentId = null;
-    user.requestStatus = "Rejected";
-    user.role = "user"; // back to default
+    user.requestStatus = null;
+    user.role = "user";
     await user.save();
 
-    res.json({ message: "Request rejected" });
+    // ✅ If department exists and no more pending users -> disable it
+    if (departmentId) {
+      const department = await Department.findById(departmentId);
+
+      if (department && !department.head) {
+        const stillPending = await User.findOne({
+          departmentId: department._id,
+          requestStatus: "pending",
+        });
+
+        if (!stillPending) {
+          department.status = "disabled";
+          department.headsRequestedBy = [];
+          await department.save();
+        }
+      }
+    }
+
+    res.json({ message: "Request rejected successfully" });
   } catch (err) {
     console.error("rejectRequest error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
-// 6️⃣ Get all pending department requests for GM
+
+
+// 6️⃣ Get all pending requests for GM
 exports.getPendingRequests = async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
-    if (!user.workspaceId)
-      return res.status(400).json({ message: "No workspace assigned" });
+    const gm = await User.findById(req.userId);
 
+    if (!gm) return res.status(404).json({ message: "User not found" });
+
+    // ✅ GM ka workspaceId user me already hota hai
+    const workspaceId = gm.workspaceId;
+
+    if (!workspaceId) {
+      return res.status(400).json({ message: "GM workspace not found" });
+    }
+
+    // ✅ Get all departments of this workspace
+    const departments = await Department.find({ workspaceId }).select("_id department");
+
+    const departmentIds = departments.map((d) => d._id);
+
+    // ✅ Get all users who are pending for these departments
     const pendingUsers = await User.find({
-      workspaceId: user.workspaceId,
-      requestStatus: "Pending",
-    }).populate("departmentId", "name role");
+      departmentId: { $in: departmentIds },
+      requestStatus: "pending",
+    }).populate("departmentId", "department status");
 
+    // ✅ Format for table
     const formatted = pendingUsers.map((u) => ({
       _id: u._id,
       name: u.name,
       email: u.email,
-      departmentName: u.departmentId?.name || "—",
+      departmentId: u.departmentId?._id,
+      departmentName: u.departmentId?.department || "—",
+      requestStatus: u.requestStatus,
     }));
 
     res.json(formatted);

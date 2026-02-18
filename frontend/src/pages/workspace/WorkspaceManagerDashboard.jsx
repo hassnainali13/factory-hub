@@ -1,3 +1,4 @@
+//frontend\src\pages\workspace\WorkspaceManagerDashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useUserProfile from "../../hooks/useUserProfile";

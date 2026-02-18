@@ -1,8 +1,7 @@
-//frontend\src\pages\auth\Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import axiosInstance from "../../api/axiosInstance"; // ✅ import your axiosInstance
+import axiosInstance from "../../api/axiosInstance";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -12,7 +11,7 @@ export default function Login() {
     password: "",
   });
 
-  const [showPassword, setShowPassword] = useState(false); // ✅ NEW
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -36,37 +35,46 @@ export default function Login() {
       const user = data.user;
       console.log("LOGIN USER:", user);
 
+      // ✅ Superadmin
       if (user.role === "superadmin") {
         navigate("/superadmin/dashboard");
         return;
       }
 
-      // ✅ Department request logic
-      // ✅ Department request logic
-      if (user.requestStatus === "Pending") {
+      // =========================================================
+      // ✅ Department Head Request Logic (FIXED)
+      // =========================================================
+      const reqStatus = (user.requestStatus || "").toLowerCase();
+
+      // ✅ If request pending → processing page
+      if (reqStatus === "pending") {
         navigate("/workspace/department-processing");
         return;
       }
 
-      if (user.requestStatus === "Approved") {
+      // ✅ If request approved → department dashboard
+      if (reqStatus === "approved") {
         navigate("/department/dashboard");
         return;
       }
 
-      if (user.requestStatus === "Rejected") {
-        // independent user
-        navigate("/workspace-options"); // or your independent user page
+      // ✅ If rejected → user normal flow
+      // (hum isko normal user ki tarah workspace-options par bhej dein)
+      if (reqStatus === "null") {
+        navigate("/workspace-options");
         return;
       }
 
-      // ✅ Workspace logic
+      // =========================================================
+      // ✅ Workspace Manager / Normal Workspace Logic (SAME AS BEFORE)
+      // =========================================================
       if (!user.workspaceId) {
         navigate("/workspace-options");
         return;
       }
 
       if (user.workspaceStatus === "pending") {
-        navigate(`/workspace/processing/${user.workspaceId}`); // ✅ fixed with ID
+        navigate(`/workspace/processing/${user.workspaceId}`);
         return;
       }
 

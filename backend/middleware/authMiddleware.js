@@ -16,7 +16,8 @@ const authenticate = (req, res, next) => {
     console.log("Decoded Token:", decoded);
 
     // ✅ Support both id and userId
-    req.userId = decoded.userId || decoded.id;
+    // authMiddleware.js
+    req.userId = decoded.userId || decoded.id; // ✅ ye properly ho
     req.role = decoded.role;
 
     if (!req.userId) {
@@ -28,6 +29,5 @@ const authenticate = (req, res, next) => {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
-
 
 module.exports = authenticate;

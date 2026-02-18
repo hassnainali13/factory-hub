@@ -1,4 +1,4 @@
-//frontend\src\hooks\useWorkspaceCreation.js
+// frontend/src/hooks/useWorkspaceCreation.js
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -26,7 +26,7 @@ const useWorkspaceCreation = () => {
   const handleFileChange = (e) => {
     setForm((prev) => ({
       ...prev,
-      logo: e.target.files[0],
+      logo: e.target.files[0] || null,
     }));
   };
 
@@ -45,14 +45,12 @@ const useWorkspaceCreation = () => {
         return;
       }
 
+      // Create FormData
       const formData = new FormData();
       formData.append("workspaceName", form.workspaceName);
       formData.append("workspaceCode", form.workspaceCode);
       formData.append("role", form.role);
-
-      if (form.logo) {
-        formData.append("logo", form.logo);
-      }
+      if (form.logo) formData.append("logo", form.logo);
 
       const res = await fetch("http://localhost:5000/api/workspaces/create", {
         method: "POST",
@@ -72,22 +70,27 @@ const useWorkspaceCreation = () => {
       }
 
       if (!res.ok) {
-        setError(data.message || "Workspace creation failed");
+        setError(data?.message || "Workspace creation failed");
         return;
       }
 
+      // ✅ Safe workspaceId access
+      const workspaceId = data?.workspace?._id;
+
       setSuccess("Workspace created successfully! Waiting for approval.");
 
-      // Navigate with workspace ID
-      setTimeout(() => {
-        navigate(`/workspace/processing/${data.workspace._id}`);
-      }, 2000);
+      // Navigate only if workspaceId exists
+      if (workspaceId) {
+        setTimeout(() => {
+          navigate(`/workspace/processing/${workspaceId}`);
+        }, 1500);
+      }
 
       // Reset form
       setForm({
         workspaceName: "",
         workspaceCode: "",
-        role: "general_manager",
+        role: "general_manager" || "indutry_head",
         logo: null,
       });
     } catch (err) {
