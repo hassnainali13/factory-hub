@@ -3,46 +3,13 @@ const User = require("../models/User");
 const Workspace = require("../models/Workspace");
 const Department = require("../models/Department");
 
-// 1️⃣ Workspace preview
-// exports.joinWorkspacePreview = async (req, res) => {
-//   try {
-//     const { workspaceCode } = req.body;
-
-//     const workspace = await Workspace.findOne({ code: workspaceCode }).populate(
-//       "createdBy",
-//       "name email"
-//     );
-
-//     if (!workspace) {
-//       return res.status(404).json({ message: "Workspace not exists" });
-//     }
-
-//     const departments = await Department.find({
-//       workspaceId: workspace._id,
-//       status: { $in: ["active", "pending", "disabled"] },
-//     }).populate("head", "name email role requestStatus");
-
-//     res.json({
-//       workspaceId: workspace._id,
-//       name: workspace.name,
-//       logo: workspace.logo,
-//       generalManager: workspace.createdBy?.name || "—",
-//       departments,
-//     });
-//   } catch (err) {
-//     console.error("joinWorkspacePreview error:", err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
-// 1️⃣ Workspace preview (UPDATED)
 exports.joinWorkspacePreview = async (req, res) => {
   try {
     const { workspaceCode } = req.body;
 
     const workspace = await Workspace.findOne({ code: workspaceCode }).populate(
       "createdBy",
-      "name email"
+      "name email",
     );
 
     if (!workspace) {
@@ -70,9 +37,7 @@ exports.joinWorkspacePreview = async (req, res) => {
   }
 };
 
-
 // 2️⃣ Send request to join a department (existing)
-// 2️⃣ Send request to join a department (UPDATED)
 exports.sendDepartmentRequest = async (req, res) => {
   try {
     const { departmentId } = req.body;
@@ -141,24 +106,27 @@ exports.sendDepartmentRequest = async (req, res) => {
   }
 };
 
-
-
 // 2️⃣a Send request from DepartmentHeadRequestPage.jsx
 exports.sendDepartmentHeadRequest = async (req, res) => {
   try {
     const { workspaceId, departmentId } = req.body;
 
     if (!workspaceId || !departmentId) {
-      return res.status(400).json({ message: "workspaceId & departmentId required" });
+      return res
+        .status(400)
+        .json({ message: "workspaceId & departmentId required" });
     }
 
     const user = await User.findById(req.userId);
     const department = await Department.findById(departmentId);
 
-    if (!user || !department) return res.status(404).json({ message: "User or Department not found" });
+    if (!user || !department)
+      return res.status(404).json({ message: "User or Department not found" });
 
     if (user.requestStatus === "pending") {
-      return res.status(400).json({ message: "Aapki request already pending hai" });
+      return res
+        .status(400)
+        .json({ message: "Aapki request already pending hai" });
     }
 
     user.departmentId = department._id;
@@ -181,13 +149,19 @@ exports.sendDepartmentHeadRequest = async (req, res) => {
 // 3️⃣ Dashboard status
 exports.dashboardStatus = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).populate("departmentId", "department status workspaceId");
+    const user = await User.findById(req.userId).populate(
+      "departmentId",
+      "department status workspaceId",
+    );
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (!user.departmentId) return res.json({ type: "noDepartment" });
-    if (user.requestStatus === "pending") return res.json({ type: "pending", department: user.departmentId });
-    if (user.requestStatus === "approved") return res.json({ type: "assigned", department: user.departmentId });
-    if (user.requestStatus === "rejected") return res.json({ type: "independent" });
+    if (user.requestStatus === "pending")
+      return res.json({ type: "pending", department: user.departmentId });
+    if (user.requestStatus === "approved")
+      return res.json({ type: "assigned", department: user.departmentId });
+    if (user.requestStatus === "rejected")
+      return res.json({ type: "independent" });
 
     return res.json({ type: "independent" });
   } catch (err) {
@@ -204,16 +178,21 @@ exports.approveRequest = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (!user.departmentId) {
-      return res.status(400).json({ message: "User has no department request" });
+      return res
+        .status(400)
+        .json({ message: "User has no department request" });
     }
 
     const department = await Department.findById(user.departmentId);
 
-    if (!department) return res.status(404).json({ message: "Department not found" });
+    if (!department)
+      return res.status(404).json({ message: "Department not found" });
 
     // ❌ If already active
     if (department.status === "active" && department.head) {
-      return res.status(400).json({ message: "Department head already assigned" });
+      return res
+        .status(400)
+        .json({ message: "Department head already assigned" });
     }
 
     // ✅ Approve this user
@@ -240,7 +219,7 @@ exports.approveRequest = async (req, res) => {
           departmentId: null,
           role: "user",
         },
-      }
+      },
     );
 
     res.json({ message: "Request approved", department, user });
@@ -249,7 +228,6 @@ exports.approveRequest = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 // 5️⃣ GM rejects request
 exports.rejectRequest = async (req, res) => {
@@ -291,7 +269,6 @@ exports.rejectRequest = async (req, res) => {
   }
 };
 
-
 // 6️⃣ Get all pending requests for GM
 exports.getPendingRequests = async (req, res) => {
   try {
@@ -307,7 +284,9 @@ exports.getPendingRequests = async (req, res) => {
     }
 
     // ✅ Get all departments of this workspace
-    const departments = await Department.find({ workspaceId }).select("_id department");
+    const departments = await Department.find({ workspaceId }).select(
+      "_id department",
+    );
 
     const departmentIds = departments.map((d) => d._id);
 
