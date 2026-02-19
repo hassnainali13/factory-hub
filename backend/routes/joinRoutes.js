@@ -1,5 +1,7 @@
-//backend\routes\joinRoutes.js
+
+
 const express = require("express");
+
 const {
   joinWorkspacePreview,
   sendDepartmentRequest,
@@ -7,7 +9,7 @@ const {
   dashboardStatus,
   approveRequest,
   rejectRequest,
-  getPendingRequests
+  getPendingRequests,
 } = require("../controllers/joinController");
 
 const authenticate = require("../middleware/authMiddleware");
@@ -22,16 +24,36 @@ router.post("/preview", authenticate, joinWorkspacePreview);
 router.post("/request", authenticate, sendDepartmentRequest);
 
 // ✅ Department head request page
-router.post("/send-department-request", authenticate, sendDepartmentHeadRequest);
+router.post(
+  "/send-department-request",
+  authenticate,
+  sendDepartmentHeadRequest,
+);
 
 // Dashboard status
 router.get("/dashboard-status", authenticate, dashboardStatus);
 
-// GM approve/reject
-router.patch("/requests/:userId/approve", authenticate, allowRoles("general_manager"), approveRequest);
-router.patch("/requests/:userId/reject", authenticate, allowRoles("general_manager"), rejectRequest);
+// ✅ GM approve/reject (ONLY GM)
+router.patch(
+  "/requests/:userId/approve",
+  authenticate,
+  allowRoles("general_manager"),
+  approveRequest,
+);
+
+router.patch(
+  "/requests/:userId/reject",
+  authenticate,
+  allowRoles("general_manager"),
+  rejectRequest,
+);
 
 // Get pending requests (GM)
-router.get("/pending-requests", authenticate, allowRoles("general_manager"), getPendingRequests);
+router.get(
+  "/pending-requests",
+  authenticate,
+  allowRoles("general_manager"),
+  getPendingRequests,
+);
 
 module.exports = router;

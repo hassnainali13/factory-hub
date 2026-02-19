@@ -10,6 +10,7 @@ import axiosInstance from "../../api/axiosInstance";
 import SidebarItem from "../../components/SidebarItem";
 import KpiCard from "../../components/KpiCard";
 import DepartmentOverviewTable from "./components/DepartmentOverviewTable";
+import DepartmentHeadRequestsList from "./components/DepartmentHeadRequestsList";
 import DepartmentManagement from "./components/DepartmentManagement";
 
 import {
@@ -100,17 +101,16 @@ export default function WorkspaceManagerDashboard() {
   const { logout, loading } = useAuthActions();
   const { open, toggle, ref: dropdownRef } = useDropdown();
   const [activePage, setActivePage] = useState("dashboard");
+  const navigate = useNavigate();
 
-  // ✅ Workspace ID state
   const [workspaceId, setWorkspaceId] = useState(null);
 
-  // Set workspaceId when user or localStorage ready
   useEffect(() => {
     if (user?.workspaceId) {
       setWorkspaceId(user.workspaceId._id || user.workspaceId);
       localStorage.setItem(
         "workspaceId",
-        user.workspaceId._id || user.workspaceId,
+        user.workspaceId._id || user.workspaceId
       );
     } else {
       const storedId = localStorage.getItem("workspaceId");
@@ -119,51 +119,89 @@ export default function WorkspaceManagerDashboard() {
   }, [user]);
 
   const [departments, setDepartments] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
 
-  // Fetch departments only when workspaceId exists
+  // ✅ Fetch departments and pending users
   useEffect(() => {
     if (!workspaceId) return;
 
     const fetchDepartments = async () => {
       try {
         const res = await axiosInstance.get(
-          `/departments?workspaceId=${workspaceId}`,
+          `/departments?workspaceId=${workspaceId}`
         );
         setDepartments(res.data);
+
+        // Fix: Ensure pendingRequests is always an array
+        const allPending = res.data.flatMap((d) =>
+          Array.isArray(d.users)
+            ? d.users.filter((u) => u.requestStatus === "pending")
+            : []
+        );
+        setPendingRequests(allPending);
       } catch (err) {
         console.error("Error fetching departments:", err);
+        setPendingRequests([]); // fallback empty array
       }
     };
 
     fetchDepartments();
   }, [workspaceId]);
 
-  const handleApprove = async (deptId) => {
+  // ✅ Approve request
+  const handleApprove = async (userId) => {
     try {
-      await axiosInstance.patch(`/departments/approve/${deptId}`);
-      if (workspaceId) {
-        const res = await axiosInstance.get(
-          `/departments?workspaceId=${workspaceId}`,
-        );
-        setDepartments(res.data);
-      }
+      await axiosInstance.patch(`/departments/approve/${userId}`);
+      // Refetch departments
+      const res = await axiosInstance.get(
+        `/departments?workspaceId=${workspaceId}`
+      );
+      setDepartments(res.data);
+
+      const allPending = res.data.flatMap((d) =>
+        Array.isArray(d.users)
+          ? d.users.filter((u) => u.requestStatus === "pending")
+          : []
+      );
+      setPendingRequests(allPending);
     } catch (err) {
-      console.error("Error approving department:", err);
+      console.error("Error approving:", err);
     }
   };
 
-  const handleReject = async (deptId) => {
+  // ✅ Reject request
+  const handleReject = async (userId) => {
     try {
-      await axiosInstance.patch(`/departments/reject/${deptId}`);
-      if (workspaceId) {
-        const res = await axiosInstance.get(
-          `/departments?workspaceId=${workspaceId}`,
-        );
-        setDepartments(res.data);
-      }
+      await axiosInstance.patch(`/departments/reject/${userId}`);
+      // Refetch departments
+      const res = await axiosInstance.get(
+        `/departments?workspaceId=${workspaceId}`
+      );
+      setDepartments(res.data);
+
+      const allPending = res.data.flatMap((d) =>
+        Array.isArray(d.users)
+          ? d.users.filter((u) => u.requestStatus === "pending")
+          : []
+      );
+      setPendingRequests(allPending);
     } catch (err) {
-      console.error("Error rejecting department:", err);
+      console.error("Error rejecting:", err);
     }
+  };
+
+  // ✅ Modal state
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+
+  const handleOpenRequests = (department) => {
+    setSelectedDepartment(department);
+    setIsRequestModalOpen(true);
+  };
+
+  const handleCloseRequests = () => {
+    setIsRequestModalOpen(false);
+    setSelectedDepartment(null);
   };
 
   if (loading) {
@@ -288,10 +326,7 @@ export default function WorkspaceManagerDashboard() {
                 <Bell className="h-4 w-4" />
               </button>
 
-              <div
-                ref={dropdownRef}
-                className="relative inline-block text-left"
-              >
+              <div ref={dropdownRef} className="relative inline-block text-left">
                 <button
                   onClick={toggle}
                   className="flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 hover:bg-gray-100 transition-colors"
@@ -300,9 +335,7 @@ export default function WorkspaceManagerDashboard() {
                     {userInitial}
                   </div>
                   <div className="hidden text-left sm:block">
-                    <p className="text-sm font-medium text-slate-900">
-                      {userName}
-                    </p>
+                    <p className="text-sm font-medium text-slate-900">{userName}</p>
                     <p className="text-[10px] text-slate-500">{userEmail}</p>
                   </div>
                 </button>
@@ -431,12 +464,22 @@ export default function WorkspaceManagerDashboard() {
                 </div>
               </section>
 
+              {/* DEPARTMENT OVERVIEW TABLE */}
               <DepartmentOverviewTable
                 departments={departments}
                 initialLimit={5}
                 disableShowMore={true}
-                approveDepartment={handleApprove}
-                rejectDepartment={handleReject}
+                onOpenRequests={handleOpenRequests}
+              />
+
+              {/* DEPARTMENT HEAD REQUESTS MODAL */}
+              <DepartmentHeadRequestsList
+                open={isRequestModalOpen}
+                onClose={handleCloseRequests}
+                department={selectedDepartment}
+                pendingRequests={Array.isArray(pendingRequests) ? pendingRequests : []}
+                onApprove={handleApprove}
+                onReject={handleReject}
               />
             </>
           )}

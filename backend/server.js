@@ -12,6 +12,7 @@ const User = require("./models/User"); // Import User model
 const superAdminRoutes = require("./routes/superAdminRoutes"); // ✅ import
 const joinRoutes = require("./routes/joinRoutes");
 const departmentRoutes = require("./routes/departmentRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 
 const app = express();
@@ -53,6 +54,7 @@ app.use("/api/workspaces", workspaceRoutes); // Register workspace routes
 app.use("/api/superadmin", superAdminRoutes); // ✅ mount
 app.use("/api/join", joinRoutes); // ✅ mount join routes
 app.use("/api/departments", departmentRoutes);
+app.use("/api/users", userRoutes);
 
 // Protected route to get the authenticated user's data
 app.get("/api/auth/me", authenticateToken, async (req, res) => {
