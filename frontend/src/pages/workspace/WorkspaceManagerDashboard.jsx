@@ -1,4 +1,4 @@
-//frontend\src\pages\workspace\WorkspaceManagerDashboard.jsx
+// frontend\src\pages\workspace\WorkspaceManagerDashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useUserProfile from "../../hooks/useUserProfile";
@@ -121,30 +121,25 @@ export default function WorkspaceManagerDashboard() {
   const [departments, setDepartments] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
 
-  // ✅ Fetch departments and pending users
-  useEffect(() => {
+  // 🔥 Fetch all departments and pending users
+  const fetchDepartments = async () => {
     if (!workspaceId) return;
 
-    const fetchDepartments = async () => {
-      try {
-        const res = await axiosInstance.get(
-          `/departments?workspaceId=${workspaceId}`
-        );
-        setDepartments(res.data);
+    try {
+      const res = await axiosInstance.get(`/departments?workspaceId=${workspaceId}`);
+      setDepartments(res.data);
 
-        // Fix: Ensure pendingRequests is always an array
-        const allPending = res.data.flatMap((d) =>
-          Array.isArray(d.users)
-            ? d.users.filter((u) => u.requestStatus === "pending")
-            : []
-        );
-        setPendingRequests(allPending);
-      } catch (err) {
-        console.error("Error fetching departments:", err);
-        setPendingRequests([]); // fallback empty array
-      }
-    };
+      const allPending = res.data.flatMap((d) =>
+        Array.isArray(d.users) ? d.users.filter((u) => u.requestStatus === "pending") : []
+      );
+      setPendingRequests(allPending);
+    } catch (err) {
+      console.error("Error fetching departments:", err);
+      setPendingRequests([]);
+    }
+  };
 
+  useEffect(() => {
     fetchDepartments();
   }, [workspaceId]);
 
@@ -153,17 +148,7 @@ export default function WorkspaceManagerDashboard() {
     try {
       await axiosInstance.patch(`/departments/approve/${userId}`);
       // Refetch departments
-      const res = await axiosInstance.get(
-        `/departments?workspaceId=${workspaceId}`
-      );
-      setDepartments(res.data);
-
-      const allPending = res.data.flatMap((d) =>
-        Array.isArray(d.users)
-          ? d.users.filter((u) => u.requestStatus === "pending")
-          : []
-      );
-      setPendingRequests(allPending);
+      await fetchDepartments();
     } catch (err) {
       console.error("Error approving:", err);
     }
@@ -174,23 +159,13 @@ export default function WorkspaceManagerDashboard() {
     try {
       await axiosInstance.patch(`/departments/reject/${userId}`);
       // Refetch departments
-      const res = await axiosInstance.get(
-        `/departments?workspaceId=${workspaceId}`
-      );
-      setDepartments(res.data);
-
-      const allPending = res.data.flatMap((d) =>
-        Array.isArray(d.users)
-          ? d.users.filter((u) => u.requestStatus === "pending")
-          : []
-      );
-      setPendingRequests(allPending);
+      await fetchDepartments();
     } catch (err) {
       console.error("Error rejecting:", err);
     }
   };
 
-  // ✅ Modal state
+  // Modal state
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
@@ -202,7 +177,16 @@ export default function WorkspaceManagerDashboard() {
   const handleCloseRequests = () => {
     setIsRequestModalOpen(false);
     setSelectedDepartment(null);
+    // 🔥 Refresh page after tick screen closes
+    fetchDepartments();
   };
+
+  const pendingDepartments = departments.filter(
+    (d) => d.status?.toLowerCase() === "pending"
+  );
+  const activeDepartments = departments.filter(
+    (d) => d.status?.toLowerCase() === "active"
+  );
 
   if (loading) {
     return (
@@ -362,14 +346,12 @@ export default function WorkspaceManagerDashboard() {
           {/* ========================= */}
           {activePage === "dashboard" && (
             <>
-              {/* KPI Cards */}
               <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {kpiCards.map((c) => (
                   <KpiCard key={c.title} {...c} />
                 ))}
               </section>
 
-              {/* Charts */}
               <section className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <h2 className="text-base font-semibold text-slate-900">
@@ -402,11 +384,7 @@ export default function WorkspaceManagerDashboard() {
                             boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
                           }}
                         />
-                        <Bar
-                          dataKey="employees"
-                          fill="#3b82f6"
-                          radius={[6, 6, 0, 0]}
-                        />
+                        <Bar dataKey="employees" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -464,7 +442,6 @@ export default function WorkspaceManagerDashboard() {
                 </div>
               </section>
 
-              {/* DEPARTMENT OVERVIEW TABLE */}
               <DepartmentOverviewTable
                 departments={departments}
                 initialLimit={5}
@@ -472,7 +449,6 @@ export default function WorkspaceManagerDashboard() {
                 onOpenRequests={handleOpenRequests}
               />
 
-              {/* DEPARTMENT HEAD REQUESTS MODAL */}
               <DepartmentHeadRequestsList
                 open={isRequestModalOpen}
                 onClose={handleCloseRequests}
@@ -484,7 +460,37 @@ export default function WorkspaceManagerDashboard() {
             </>
           )}
 
-          {/* Department Management */}
+          {activePage === "departments" && (
+            <DepartmentOverviewTable
+              title="Active Departments"
+              departments={activeDepartments}
+              initialLimit={10}
+              disableShowMore={true}
+              onOpenRequests={handleOpenRequests}
+            />
+          )}
+
+          {activePage === "approvals" && (
+            <>
+              <DepartmentOverviewTable
+                title="Pending Department Approvals"
+                departments={pendingDepartments}
+                initialLimit={10}
+                disableShowMore={true}
+                onOpenRequests={handleOpenRequests}
+              />
+
+              <DepartmentHeadRequestsList
+                open={isRequestModalOpen}
+                onClose={handleCloseRequests}
+                department={selectedDepartment}
+                pendingRequests={Array.isArray(pendingRequests) ? pendingRequests : []}
+                onApprove={handleApprove}
+                onReject={handleReject}
+              />
+            </>
+          )}
+
           {activePage === "department-management" && (
             <DepartmentManagement
               data={departments}

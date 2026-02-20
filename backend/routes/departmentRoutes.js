@@ -1,31 +1,3 @@
-// //backend\routes\departmentRoutes.js
-
-// const express = require("express");
-// const router = express.Router();
-// const authenticate = require("../middleware/authMiddleware"); // ✅ import
-
-// const {
-//   getDepartments,
-//   createDepartment,
-//   approveDepartment,
-//   rejectDepartment,
-// } = require("../controllers/departmentController");
-
-// // GET all departments (optional: secure or public)
-// router.get("/", authenticate, getDepartments);
-
-// // POST create a new department
-// router.post("/create", authenticate, createDepartment); // ✅ protect endpoint
-
-// // PATCH approve a department
-// router.patch("/approve/:id", authenticate, approveDepartment);
-
-// // PATCH reject a department
-// router.patch("/reject/:id", authenticate, rejectDepartment);
-
-// module.exports = router;
-
-
 
 // backend/routes/departmentRoutes.js
 
@@ -50,7 +22,7 @@ router.get("/", authenticate, getDepartments);
 router.post(
   "/create",
   authenticate,
-  allowRoles("general_manager"),
+allowRoles("general_manager", "industry_head"),
   createDepartment,
 );
 
@@ -58,7 +30,7 @@ router.post(
 router.patch(
   "/approve/:id",
   authenticate,
-  allowRoles("general_manager"),
+allowRoles("general_manager", "industry_head"),
   approveDepartment,
 );
 
@@ -66,7 +38,7 @@ router.patch(
 router.patch(
   "/reject/:id",
   authenticate,
-  allowRoles("general_manager"),
+allowRoles("general_manager", "industry_head"),
   rejectDepartment,
 );
 // backend/routes/departmentRoutes.js
@@ -74,7 +46,7 @@ router.patch(
 router.patch(
   "/approve-head/:userId",
   authenticate,
-  allowRoles("general_manager"),
+allowRoles("general_manager", "industry_head"),
   approveHeadRequest
 );
 

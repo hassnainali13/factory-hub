@@ -1,5 +1,3 @@
-// frontend\src\pages\workspace\components\DepartmentHeadRequestsList.jsx
-
 import React, { useEffect, useState } from "react";
 import { FaCheckCircle, FaTimes } from "react-icons/fa";
 import axiosInstance from "../../../api/axiosInstance";
@@ -15,13 +13,14 @@ const DepartmentHeadRequestsList = ({
   const [success, setSuccess] = useState(false);
   const [pendingRequests, setPendingRequests] = useState([]);
 
-  // ✅ Fetch pending users for this department when modal opens
+  // ✅ Fetch pending requests whenever modal opens or department changes
   useEffect(() => {
     if (!open || !department?._id) return;
 
-    const fetchPendingUsers = async () => {
+    const fetchPendingRequests = async () => {
       try {
         const res = await axiosInstance.get("/users/pending");
+
         const filtered = Array.isArray(res.data)
           ? res.data.filter(
               (u) =>
@@ -30,78 +29,63 @@ const DepartmentHeadRequestsList = ({
                   String(department._id),
             )
           : [];
+
         setPendingRequests(filtered);
       } catch (err) {
-        console.error("Error fetching users:", err);
+        console.error("Error fetching pending users:", err);
         setPendingRequests([]);
       }
     };
 
-    fetchPendingUsers();
+    fetchPendingRequests();
   }, [open, department]);
 
   if (!open) return null;
 
-  // ✅ Approve request
+  // ✅ Approve Request
   const handleApprove = async (userId) => {
-    try {
-      setLoadingId(userId);
+    setLoadingId(userId); // ✅ Show loading on button
 
-      // Call backend to approve user
-      // DepartmentHeadRequestsList.jsx
+    try {
       await axiosInstance.patch(`/departments/approve-head/${userId}`);
 
-      // Refetch departments from backend
-      const res = await axiosInstance.get(
-        `/departments?workspaceId=${workspaceId}`,
-      );
-      setDepartments(res.data);
+      // ✅ Refresh departments for dashboard sync
+      if (workspaceId && setDepartments) {
+        const res = await axiosInstance.get(
+          `/departments?workspaceId=${workspaceId}`,
+        );
+        setDepartments(res.data);
+      }
 
-      // Update pending requests
-      const allPending = res.data.flatMap((d) =>
-        Array.isArray(d.users)
-          ? d.users.filter((u) => u.requestStatus === "pending")
-          : [],
-      );
-      setPendingRequests(allPending);
+      // ✅ Remove approved user from modal instantly
+      setPendingRequests((prev) => prev.filter((u) => u._id !== userId));
 
+      // ✅ Show tick screen after API success
       setSuccess(true);
 
-      // Auto-close modal after 2 seconds
+      // ✅ Hide tick and close modal after 2 sec
       setTimeout(() => {
         setSuccess(false);
         onClose?.();
       }, 2000);
     } catch (err) {
-      console.error("Error approving:", err);
+      console.error("Error approving request:", err);
     } finally {
-      setLoadingId(null);
+      setLoadingId(null); // ✅ Remove loading state from button
     }
   };
 
-  // ✅ Reject request
+  // ✅ Reject Request
   const handleReject = async (userId) => {
     try {
       setLoadingId(userId);
 
-      // Call backend to reject user
       await axiosInstance.patch(`/departments/reject/${userId}`);
 
-      // Refetch departments
-      const res = await axiosInstance.get(
-        `/departments?workspaceId=${workspaceId}`,
-      );
-      setDepartments(res.data);
-
-      // Update pending requests
-      const allPending = res.data.flatMap((d) =>
-        Array.isArray(d.users)
-          ? d.users.filter((u) => u.requestStatus === "pending")
-          : [],
-      );
-      setPendingRequests(allPending);
+      // Remove rejected user from modal instantly
+      setPendingRequests((prev) => prev.filter((u) => u._id !== userId));
     } catch (err) {
-      console.error("Error rejecting:", err);
+      console.error("Error rejecting request:", err);
     } finally {
       setLoadingId(null);
     }
@@ -118,10 +102,11 @@ const DepartmentHeadRequestsList = ({
             </h2>
             <p className="text-sm text-slate-500">
               Department:{" "}
-              <span className="font-medium">{department?.department}</span>
+              <span className="font-medium">
+                {department?.name || department?.department}
+              </span>
             </p>
           </div>
-
           <button
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-slate-100 transition"
@@ -131,14 +116,16 @@ const DepartmentHeadRequestsList = ({
         </div>
 
         {/* Body */}
-        <div className="p-4">
+        <div className="p-6">
           {success ? (
-            <div className="flex flex-col items-center justify-center py-10">
-              <FaCheckCircle className="text-emerald-500 text-5xl mb-3" />
-              <p className="text-lg font-semibold text-slate-900">
+            <div className="flex flex-col items-center justify-center py-12 animate-fadeIn">
+              <FaCheckCircle className="text-emerald-500 text-6xl mb-4 animate-bounce" />
+              <p className="text-xl font-semibold text-slate-900">
                 Request Approved Successfully
               </p>
-              <p className="text-sm text-slate-500">Closing in 2 seconds...</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Closing in 2 seconds...
+              </p>
             </div>
           ) : pendingRequests.length === 0 ? (
             <p className="text-center text-sm text-slate-500 py-6">
@@ -157,14 +144,12 @@ const DepartmentHeadRequestsList = ({
                     </th>
                   </tr>
                 </thead>
-
                 <tbody className="divide-y divide-slate-50">
                   {pendingRequests.map((u) => (
                     <tr key={u._id}>
                       <td className="py-3 text-sm font-medium text-slate-900">
                         {u.name}
                       </td>
-
                       <td className="py-3 text-right">
                         <div className="inline-flex gap-2">
                           <button
@@ -174,7 +159,6 @@ const DepartmentHeadRequestsList = ({
                           >
                             {loadingId === u._id ? "Approving..." : "Approve"}
                           </button>
-
                           <button
                             disabled={loadingId === u._id}
                             onClick={() => handleReject(u._id)}
