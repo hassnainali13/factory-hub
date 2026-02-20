@@ -1,5 +1,5 @@
-
 // backend/controllers/joinController.js
+const mongoose = require("mongoose");
 
 // const User = require("../models/User");
 const Workspace = require("../models/Workspace");
@@ -205,55 +205,72 @@ exports.dashboardStatus = async (req, res) => {
   }
 };
 
-
-
 // ✅ Approve a user's department head request
 exports.approveRequest = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { userId } = req.params;
 
-    // 1️⃣ Find the user
-    const user = await User.findById(userId);
+    // ✅ Get user to approve
+    const user = await User.findById(userId).session(session);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (!user.departmentId)
-      return res.status(400).json({ message: "User has no department request" });
+      return res.status(400).json({ message: "No department request found" });
 
-    // 2️⃣ Find the department
-    const department = await Department.findById(user.departmentId);
+    // ✅ Get department
+    const department = await Department.findById(user.departmentId).session(
+      session,
+    );
     if (!department)
       return res.status(404).json({ message: "Department not found" });
 
-    // 3️⃣ Approve this user
+    const departmentId = department._id;
+
+    // ✅ Approve selected user
     user.requestStatus = "approved";
-    user.role = department.head || "departmentHead"; // assign role from department.head field
-    await user.save();
+    user.role = "department_head";
+    await user.save({ session });
 
-    // 4️⃣ Update department head
-    department.deptHeadId = user._id;
-    department.status = "active";
-    department.headsRequestedBy = []; // remove all pending requests
-    await department.save();
-
-    // 5️⃣ Reset all other users who requested this department
-    await User.updateMany(
+    // ✅ Reset all other pending users of same department
+    // Using $expr + $eq + ObjectId to avoid type mismatch
+    const result = await User.updateMany(
       {
         _id: { $ne: user._id },
-        departmentId: department._id,
         requestStatus: "pending",
+        $expr: { $eq: ["$departmentId", departmentId] }, // THIS ensures ObjectId match
       },
       {
-        $set: { requestStatus: "none", departmentId: null, role: "user" },
-      }
+        $set: {
+          requestStatus: null,
+          departmentId: null,
+          role: "user",
+        },
+      },
+      { session },
     );
+
+    console.log("Pending users reset:", result.modifiedCount);
+
+    // ✅ Update department
+    department.deptHeadId = user._id;
+    department.status = "active";
+    department.headsRequestedBy = [];
+    await department.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
 
     res.json({ message: "Request approved successfully" });
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("approveRequest error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
-
 // ✅ Reject a user's department head request
 exports.rejectRequest = async (req, res) => {
   try {
@@ -263,10 +280,12 @@ exports.rejectRequest = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (!user.departmentId)
-      return res.status(400).json({ message: "User has no department request" });
+      return res
+        .status(400)
+        .json({ message: "User has no department request" });
 
     // Reset only this user's request
-    user.requestStatus = "none";
+    requestStatus = null;
     user.departmentId = null;
     user.role = "user";
     await user.save();
@@ -277,7 +296,6 @@ exports.rejectRequest = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 // 6️⃣ Get all pending requests for GM
 exports.getPendingRequests = async (req, res) => {
