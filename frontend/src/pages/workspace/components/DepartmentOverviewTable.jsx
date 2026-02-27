@@ -1,4 +1,3 @@
-
 // frontend\src\pages\workspace\components\DepartmentOverviewTable.jsx
 
 import React, { useState, useEffect } from "react";
@@ -40,6 +39,10 @@ const DepartmentOverviewTable = ({
                 Department
               </th>
               <th className="w-1/4 pb-3 text-xs font-semibold uppercase text-slate-400">
+                {/* Status */}
+                Head Name
+              </th>
+              <th className="w-1/4 pb-3 text-xs font-semibold uppercase text-slate-400">
                 Status
               </th>
               <th className="w-1/4 pb-3 text-xs font-semibold uppercase text-slate-400 text-center">
@@ -51,7 +54,10 @@ const DepartmentOverviewTable = ({
           <tbody className="divide-y divide-slate-50">
             {displayedDepartments.length === 0 ? (
               <tr>
-                <td colSpan={3} className="py-4 text-center text-sm text-slate-500">
+                <td
+                  colSpan={3}
+                  className="py-4 text-center text-sm text-slate-500"
+                >
                   No departments found.
                 </td>
               </tr>
@@ -69,9 +75,19 @@ const DepartmentOverviewTable = ({
                       {d.department}
                     </td>
 
+                    <td className="py-4 text-sm text-slate-500">
+                      {d.headName || "N/A"}
+                    </td>
+
                     <td className="py-4">
                       <StatusPill
-                        status={isPending ? "pending" : isActive ? "active" : "disabled"}
+                        status={
+                          isPending
+                            ? "pending"
+                            : isActive
+                              ? "active"
+                              : "disabled"
+                        }
                       />
                     </td>
 

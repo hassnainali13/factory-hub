@@ -24,17 +24,28 @@ exports.joinWorkspacePreview = async (req, res) => {
     }
 
     // ✅ Departments
+    // ✅ Departments
     const departments = await Department.find({
       workspaceId: workspace._id,
       status: { $in: ["active", "pending", "disabled"] },
-    }).select("department status head deptHeadId headsRequestedBy employees");
+    })
+      .select("department status deptHeadId")
+      .populate("deptHeadId", "name");
+
+    // ✅ YAHAN headName create kar rahe hain
+    const formattedDepartments = departments.map((d) => ({
+      _id: d._id,
+      department: d.department,
+      status: d.status,
+      headName: d.deptHeadId?.name || null,
+    }));
 
     res.json({
       workspaceId: workspace._id,
       name: workspace.name,
       logo: workspace.logo,
       generalManager: workspace.createdBy?.name || "—",
-      departments,
+      departments: formattedDepartments,
     });
   } catch (err) {
     console.error("joinWorkspacePreview error:", err);
@@ -213,61 +224,75 @@ exports.approveRequest = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // ✅ Get user to approve
     const user = await User.findById(userId).session(session);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
 
     if (!user.departmentId)
       return res.status(400).json({ message: "No department request found" });
 
-    // ✅ Get department
-    const department = await Department.findById(user.departmentId).session(
-      session,
-    );
+    const deptId = user.departmentId;   // 🔥 store before anything changes
+
+    const department = await Department.findById(deptId).session(session);
     if (!department)
       return res.status(404).json({ message: "Department not found" });
 
-    const departmentId = department._id;
+    if (department.deptHeadId)
+      return res.status(400).json({ message: "Head already assigned" });
 
     // ✅ Approve selected user
-    user.requestStatus = "approved";
-    user.role = "department_head";
-    await user.save({ session });
+    await User.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          requestStatus: "approved",
+          role: "department_head",
+        },
+      },
+      { session }
+    );
 
-    // ✅ Reset all other pending users of same department
-    // Using $expr + $eq + ObjectId to avoid type mismatch
+    // ✅ Reset ALL other pending users (IMPORTANT: no object recreation)
     const result = await User.updateMany(
       {
-        _id: { $ne: user._id },
+        departmentId: deptId,
+        _id: { $ne: userId },
         requestStatus: "pending",
-        $expr: { $eq: ["$departmentId", departmentId] }, // THIS ensures ObjectId match
       },
       {
         $set: {
-          requestStatus: null,
           departmentId: null,
+          requestStatus: null,
           role: "user",
         },
       },
-      { session },
+      { session }
     );
 
-    console.log("Pending users reset:", result.modifiedCount);
+    console.log("Reset count:", result.modifiedCount);
 
     // ✅ Update department
-    department.deptHeadId = user._id;
-    department.status = "active";
-    department.headsRequestedBy = [];
-    await department.save({ session });
+    await Department.updateOne(
+      { _id: deptId },
+      {
+        $set: {
+          deptHeadId: userId,
+          status: "active",
+          headsRequestedBy: [],
+        },
+      },
+      { session }
+    );
 
     await session.commitTransaction();
     session.endSession();
 
-    res.json({ message: "Request approved successfully" });
-  } catch (err) {
+    res.json({ message: "Approved successfully" });
+
+  } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    console.error("approveRequest error:", err);
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -280,19 +305,20 @@ exports.rejectRequest = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (!user.departmentId)
-      return res
-        .status(400)
-        .json({ message: "User has no department request" });
+      return res.status(400).json({
+        message: "User has no department request",
+      });
 
-    // Reset only this user's request
-    requestStatus = null;
+    // Reset only this user
+    user.requestStatus = null;
     user.departmentId = null;
     user.role = "user";
+
     await user.save();
 
     res.json({ message: "Request rejected successfully" });
-  } catch (err) {
-    console.error("rejectRequest error:", err);
+  } catch (error) {
+    console.error("rejectRequest error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

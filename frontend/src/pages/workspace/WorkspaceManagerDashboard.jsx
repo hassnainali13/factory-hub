@@ -293,7 +293,7 @@ export default function WorkspaceManagerDashboard() {
                 {workspaceDetails.workspaceName}, Dashboard
               </h1>
               <p className="mt-1 text-sm text-slate-500">
-                Welcome, {userName} — General Manager
+                Welcome, {userName} — {role}
               </p>
             </div>
 
