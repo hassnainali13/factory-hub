@@ -1,11 +1,12 @@
-// frontend/src/pages/department/DepartmentHeadDashboard.jsx
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import useDropdown from "../../hooks/useDropdown";
 import SidebarItem from "../../components/SidebarItem";
 import KpiCard from "../../components/KpiCard";
-import StatusPill from "../../components/StatusPill";
-
+import DepartmentStaffTable from "./components/DepartmentStaffTable";
+import { useNavigate } from "react-router-dom";
+import axiosInstance from "../../api/axiosInstance";
+import CustomBarChart from "../../components/BarChart";
+import CustomLineChart from "../../components/LineChart";
 import {
   Bell,
   Search,
@@ -17,184 +18,354 @@ import {
   FileBarChart2,
   Shield,
   Settings,
-  Eye,
+  Boxes,
 } from "lucide-react";
-
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  LineChart,
-  Line,
-  Legend,
-} from "recharts";
-
-/* ===============================
-   Department Data
-================================= */
-
-const department = {
-  name: "Production",
-  totalEmployees: 45,
-  attendanceRate: 92,
-  activeTasks: 18,
-  pendingApprovals: 6,
-};
-
-const kpiCards = [
-  {
-    title: "Total Employees",
-    value: department.totalEmployees,
-    delta: "+3 this month",
-    icon: Users,
-    accent: "text-blue-600",
-    bg: "bg-blue-50",
-  },
-  {
-    title: "Pending Approvals",
-    value: department.pendingApprovals,
-    delta: "2 urgent",
-    icon: CheckSquare,
-    accent: "text-orange-700",
-    bg: "bg-orange-50",
-    border: "border-orange-200",
-  },
-  {
-    title: "Active Tasks",
-    value: department.activeTasks,
-    delta: "+4 this week",
-    icon: ClipboardList,
-    accent: "text-emerald-600",
-    bg: "bg-emerald-50",
-  },
-  {
-    title: "Attendance Rate",
-    value: `${department.attendanceRate}%`,
-    delta: "This month",
-    icon: TrendingUp,
-    accent: "text-violet-600",
-    bg: "bg-violet-50",
-  },
-];
-
-const attendanceData = [
-  { month: "Jan", attendance: 88 },
-  { month: "Feb", attendance: 91 },
-  { month: "Mar", attendance: 87 },
-  { month: "Apr", attendance: 93 },
-  { month: "May", attendance: 90 },
-  { month: "Jun", attendance: 92 },
-];
-
-const taskData = [
-  { month: "Jan", completed: 14 },
-  { month: "Feb", completed: 18 },
-  { month: "Mar", completed: 16 },
-  { month: "Apr", completed: 22 },
-  { month: "May", completed: 19 },
-  { month: "Jun", completed: 25 },
-];
-
-const employees = [
-  { id: 1, name: "Ali Khan", role: "Supervisor", status: "Active", attendance: "95%" },
-  { id: 2, name: "Ahmed Raza", role: "Operator", status: "Active", attendance: "89%" },
-  { id: 3, name: "Usman Tariq", role: "Technician", status: "On Leave", attendance: "—" },
-  { id: 4, name: "Bilal Ahmed", role: "Operator", status: "Active", attendance: "91%" },
-];
-
-/* ===============================
-   User Info
-================================= */
-
-const userName = "John Doe";
-const userEmail = "john@example.com";
-const userInitial = "J";
 
 export default function DepartmentHeadDashboard() {
   const { open, toggle, ref } = useDropdown();
+  const navigate = useNavigate();
+
+  const [department, setDepartment] = useState(null);
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [taskData, setTaskData] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [activePage, setActivePage] = useState("dashboard");
+
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  /* Dummy Data */
+
+  const dummyDepartment = {
+    department: "HR Department",
+    workspaceId: {
+      name: "FactoryHub Workspace",
+      logo: "",
+    },
+    pendingApprovals: 4,
+    activeTasks: 12,
+    attendanceRate: 92,
+  };
+
+  const dummyEmployees = [
+    {
+      _id: "emp1",
+      name: "Ahmed Khan",
+      age: 28,
+      joinedDate: "2022-03-15",
+      status: "active",
+    },
+    {
+      _id: "emp2",
+      name: "Sara Ali",
+      age: 32,
+      joinedDate: "2021-11-08",
+      status: "active",
+    },
+    {
+      _id: "emp3",
+      name: "Bilal Ahmed",
+      age: 26,
+      joinedDate: "2023-01-20",
+      status: "pending",
+    },
+    {
+      _id: "emp2",
+      name: "Sara Ali",
+      age: 32,
+      joinedDate: "2021-11-08",
+      status: "active",
+    },
+    {
+      _id: "emp3",
+      name: "Bilal Ahmed",
+      age: 26,
+      joinedDate: "2023-01-20",
+      status: "pending",
+    },
+    {
+      _id: "emp2",
+      name: "Sara Ali",
+      age: 32,
+      joinedDate: "2021-11-08",
+      status: "active",
+    },
+    {
+      _id: "emp3",
+      name: "Bilal Ahmed",
+      age: 26,
+      joinedDate: "2023-01-20",
+      status: "pending",
+    },
+    {
+      _id: "emp2",
+      name: "Sara Ali",
+      age: 32,
+      joinedDate: "2021-11-08",
+      status: "active",
+    },
+    {
+      _id: "emp3",
+      name: "Bilal Ahmed",
+      age: 26,
+      joinedDate: "2023-01-20",
+      status: "pending",
+    },
+  ];
+
+  const dummyAttendanceData = [
+    { month: "Jan", attendance: 85 },
+    { month: "Feb", attendance: 90 },
+    { month: "Mar", attendance: 92 },
+    { month: "Apr", attendance: 88 },
+    { month: "May", attendance: 94 },
+  ];
+
+  const dummyTaskData = [
+    { month: "Jan", completed: 20 },
+    { month: "Feb", completed: 35 },
+    { month: "Mar", completed: 40 },
+    { month: "Apr", completed: 55 },
+    { month: "May", completed: 60 },
+  ];
+
+  /* Fetch Department */
+
+  useEffect(() => {
+    const fetchDepartment = async () => {
+      try {
+        const res = await axiosInstance.get("/departments/my-department");
+
+        setDepartment(res.data.department || null);
+      } catch (error) {
+        console.error("Error fetching department:", error?.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDepartment();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-20 h-20 bg-purple-200 blur-2xl rounded-full animate-pulse"></div>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin relative"></div>
+        </div>
+
+        <p className="mt-6 text-lg font-semibold text-gray-800">
+          Loading Dashboard
+        </p>
+
+        <p className="text-xs text-gray-400 mt-1">Please wait...</p>
+      </div>
+    );
+  }
+
+  const departmentData = department || dummyDepartment;
+
+  const displayEmployees = employees.length ? employees : dummyEmployees;
+  const displayAttendance = attendanceData.length
+    ? attendanceData
+    : dummyAttendanceData;
+
+  const displayTasks = taskData.length ? taskData : dummyTaskData;
+
+  /* KPI Cards */
+
+  const kpiCards = [
+    {
+      title: "Total Employees",
+      value: displayEmployees.length,
+      delta: "+ Updated",
+      icon: Users,
+      accent: "text-blue-600",
+      bg: "bg-blue-50",
+    },
+    {
+      title: "Pending Approvals",
+      value: departmentData.pendingApprovals || 0,
+      delta: "Requires action",
+      icon: CheckSquare,
+      accent: "text-orange-700",
+      bg: "bg-orange-50",
+    },
+    {
+      title: "Active Tasks",
+      value: departmentData.activeTasks || 0,
+      delta: "Current",
+      icon: ClipboardList,
+      accent: "text-emerald-600",
+      bg: "bg-emerald-50",
+    },
+    {
+      title: "Attendance Rate",
+      value: `${departmentData.attendanceRate || 0}%`,
+      delta: "This month",
+      icon: TrendingUp,
+      bg: "bg-violet-50",
+      accent: "text-violet-600",
+    },
+  ];
+
+  const handleApprove = async (id) => {
+    try {
+      await axiosInstance.patch(`/employees/${id}/approve`);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await axiosInstance.patch(`/employees/${id}/reject`);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleView = (emp) => {
+    console.log("View employee:", emp);
+  };
+  const activeEmployees = displayEmployees.filter(
+    (emp) => emp.status?.toLowerCase() === "active",
+  );
+
+  const pendingEmployees = displayEmployees.filter(
+    (emp) => emp.status?.toLowerCase() === "pending",
+  );
 
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto flex max-w-[1440px] gap-6 p-4 md:p-6">
-        
-        {/* ================= Sidebar ================= */}
+        {/* Sidebar */}
         <aside className="hidden w-[260px] shrink-0 md:block">
           <div className="sticky top-6">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              
               <div className="flex items-center gap-3 px-2">
-                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-white border border-slate-200 shadow-sm">
-                  <LayoutDashboard className="h-4 w-4 text-slate-700" />
+                <div className="h-10 w-10 overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+                  <img
+                    src={
+                      departmentData.workspaceId?.logo
+                        ? `${import.meta.env.VITE_API_URL}/${departmentData.workspaceId.logo}`
+                        : "/default-workspace.png"
+                    }
+                    alt="Workspace Logo"
+                    className="h-full w-full object-cover"
+                  />
                 </div>
+
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
-                    {department.name}
+                    {departmentData.workspaceId?.name || "Workspace Name"}
                   </p>
                   <p className="text-xs text-slate-500">
-                    Department Head
+                    {departmentData.department || "Department Name"}
                   </p>
                 </div>
               </div>
 
               <div className="mt-5 space-y-1">
-                <SidebarItem icon={LayoutDashboard} label="Dashboard" active />
-                <SidebarItem icon={Users} label="Employees" />
-                <SidebarItem icon={CheckSquare} label="Approvals" />
-                <SidebarItem icon={ClipboardList} label="Tasks" />
-                <SidebarItem icon={Shield} label="Attendance" />
-                <SidebarItem icon={FileBarChart2} label="Reports" />
-                <SidebarItem icon={Settings} label="Settings" />
-              </div>
+                <SidebarItem
+                  icon={LayoutDashboard}
+                  label="Dashboard"
+                  active={activePage === "dashboard"}
+                  onClick={() => setActivePage("dashboard")}
+                />
 
+                <SidebarItem
+                  icon={Boxes}
+                  label="Employees"
+                  active={activePage === "employees"}
+                  onClick={() => setActivePage("employees")}
+                />
+
+                <SidebarItem
+                  icon={CheckSquare}
+                  label="Approvals"
+                  active={activePage === "approvals"}
+                  onClick={() => setActivePage("approvals")}
+                />
+
+                <SidebarItem
+                  icon={Shield}
+                  label="Tasks"
+                  active={activePage === "tasks"}
+                  onClick={() => setActivePage("tasks")}
+                />
+
+                <SidebarItem
+                  icon={Users}
+                  label="Attendance"
+                  active={activePage === "attendance"}
+                  onClick={() => setActivePage("attendance")}
+                />
+
+                <SidebarItem
+                  icon={FileBarChart2}
+                  label="Reports"
+                  active={activePage === "reports"}
+                  onClick={() => setActivePage("reports")}
+                />
+
+                <SidebarItem
+                  icon={Settings}
+                  label="System Settings"
+                  active={activePage === "settings"}
+                  onClick={() => setActivePage("settings")}
+                />
+              </div>
             </div>
           </div>
         </aside>
 
-        {/* ================= Main ================= */}
+        {/* Main Content */}
         <main className="flex-1 min-w-0">
-
-          {/* ================= Topbar ================= */}
+          {/* Header */}
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                {department.name} Department
+                {departmentData.department || "Department Name"}, Dashboard
               </h1>
+
               <p className="mt-1 text-sm text-slate-500">
-                Welcome back, {userName}
+                Welcome back, {user?.name}
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-
+            <div className="flex items-center gap-3 ml-auto">
               <div className="relative flex-1 sm:min-w-[300px]">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
                 <input
                   className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
                   placeholder="Search employees..."
                 />
               </div>
 
-              <button className="grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition">
-                <Bell className="h-4 w-4" />
+              <button className="grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition">
+                <Bell className="h-4 w-4 text-slate-700" />
               </button>
 
-              {/* Profile */}
-              <div ref={ref} className="relative">
+              {/* Profile Dropdown */}
+              <div ref={ref} className="relative ml-2">
                 <button
                   onClick={toggle}
                   className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50 transition"
                 >
                   <div className="grid h-8 w-8 place-items-center rounded-full bg-violet-600 text-xs font-semibold text-white">
-                    {userInitial}
+                    {user?.name?.charAt(0)}
                   </div>
+
                   <div className="hidden sm:block text-left">
-                    <p className="text-sm font-medium text-slate-900">{userName}</p>
-                    <p className="text-[10px] text-slate-500">{userEmail}</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {user?.name}
+                    </p>
+
+                    <p className="text-[10px] text-slate-500">{user?.email}</p>
                   </div>
                 </button>
 
@@ -203,106 +374,87 @@ export default function DepartmentHeadDashboard() {
                     <button className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50">
                       Profile View
                     </button>
-                    <button className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50">
+
+                    <button
+                      onClick={() => {
+                        localStorage.clear();
+                        navigate("/login");
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                    >
                       Logout
                     </button>
                   </div>
                 )}
               </div>
-
             </div>
           </div>
 
-          {/* ================= KPI ================= */}
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {kpiCards.map((card) => (
-              <KpiCard key={card.title} {...card} />
-            ))}
-          </section>
+          {/* Dashboard Page */}
+          {activePage === "dashboard" && (
+            <>
+              <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {kpiCards.map((card) => (
+                  <KpiCard key={card.title} {...card} />
+                ))}
+              </section>
 
-          {/* ================= Charts ================= */}
-          <section className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <section className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <h2 className="text-base font-semibold text-slate-900">
+                    Monthly Attendance
+                  </h2>
 
-            {/* Attendance Chart */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-semibold text-slate-900">
-                Monthly Attendance
-              </h2>
-              <div className="h-[260px] mt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={attendanceData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
-                    <Tooltip cursor={{ fill: "#f8fafc" }} contentStyle={{ borderRadius: "12px", border: "none" }} />
-                    <Legend iconType="circle" />
-                    <Line type="monotone" dataKey="attendance" stroke="#6366f1" strokeWidth={3} dot={{ r: 4 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+                  <CustomLineChart
+                    data={displayAttendance}
+                    lines={[{ dataKey: "attendance", color: "#6366f1" }]}
+                  />
+                </div>
 
-            {/* Task Chart */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-semibold text-slate-900">
-                Task Completion
-              </h2>
-              <div className="h-[260px] mt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={taskData} barSize={38}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
-                    <Tooltip cursor={{ fill: "#f8fafc" }} contentStyle={{ borderRadius: "12px", border: "none" }} />
-                    <Bar dataKey="completed" fill="#3b82f6" radius={[6,6,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <h2 className="text-base font-semibold text-slate-900">
+                    Task Completion
+                  </h2>
 
-          </section>
+                  <CustomBarChart
+                    data={displayTasks}
+                    xKey="month"
+                    yKey="completed"
+                    barColor="#3b82f6"
+                  />
+                </div>
+              </section>
 
-          {/* ================= Employees Table ================= */}
-          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-slate-900">
-                Department Employees
-              </h2>
-              <button className="text-sm font-medium text-blue-600 hover:text-blue-700">
-                View all
-              </button>
-            </div>
+              <DepartmentStaffTable
+                employees={displayEmployees.slice(0, 5)}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onView={handleView}
+              />
+            </>
+          )}
 
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px]">
-                <thead>
-                  <tr className="border-b border-slate-100 text-left">
-                    <th className="pb-3 text-xs font-semibold uppercase text-slate-400">Name</th>
-                    <th className="pb-3 text-xs font-semibold uppercase text-slate-400">Role</th>
-                    <th className="pb-3 text-xs font-semibold uppercase text-slate-400">Attendance</th>
-                    <th className="pb-3 text-xs font-semibold uppercase text-slate-400">Status</th>
-                    <th className="pb-3 text-xs font-semibold uppercase text-slate-400">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {employees.map((emp) => (
-                    <tr key={emp.id}>
-                      <td className="py-4 text-sm font-medium text-slate-900">{emp.name}</td>
-                      <td className="py-4 text-sm text-slate-600">{emp.role}</td>
-                      <td className="py-4 text-sm text-slate-600">{emp.attendance}</td>
-                      <td className="py-4"><StatusPill status={emp.status} /></td>
-                      <td className="py-4">
-                        <button className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-600 transition">
-                          <Eye className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
+          {/* ========================= */}
+          {/* WORKSPACES PAGE */}
+          {/* ========================= */}
+          {activePage === "employees" && (
+            <DepartmentStaffTable
+              title="Active Employees"
+              employees={activeEmployees}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onView={handleView}
+            />
+          )}
+          {activePage === "approvals" && (
+            <DepartmentStaffTable
+              title="Pending Approvals"
+              employees={pendingEmployees}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onView={handleView}
+            />
+          )}
         </main>
       </div>
     </div>

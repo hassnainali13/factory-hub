@@ -189,30 +189,86 @@ exports.sendDepartmentHeadRequest = async (req, res) => {
 };
 
 // 3️⃣ Dashboard status
+// exports.dashboardStatus = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.userId).populate(
+//       "departmentId",
+//       "department status workspaceId deptHeadId",
+//     );
+
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     if (!user.departmentId) return res.json({ type: "noDepartment" });
+
+//     if (user.requestStatus === "pending")
+//       return res.json({ type: "pending", department: user.departmentId });
+
+//     if (user.requestStatus === "approved")
+//       return res.json({ type: "assigned", department: user.departmentId });
+
+//     if (user.requestStatus === "rejected")
+//       return res.json({ type: "independent" });
+
+//     return res.json({ type: "independent" });
+//   } catch (err) {
+//     console.error("dashboardStatus error:", err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
 exports.dashboardStatus = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).populate(
-      "departmentId",
-      "department status workspaceId deptHeadId",
-    );
+    const user = await User.findById(req.userId).populate({
+      path: "departmentId",
+      select: "department status workspaceId deptHeadId",
+      populate: {
+        path: "workspaceId",
+        select: "name logo",
+      },
+    });
+    if (!user) {
+      return res.status(404).json({
+        type: "error",
+        message: "User not found",
+      });
+    }
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    // ❗ No department joined yet
+    if (!user.departmentId) {
+      return res.json({ type: "noDepartment" });
+    }
 
-    if (!user.departmentId) return res.json({ type: "noDepartment" });
+    const departmentData = user.departmentId;
 
-    if (user.requestStatus === "pending")
-      return res.json({ type: "pending", department: user.departmentId });
+    // ✅ Pending Request
+    if (user.requestStatus === "pending") {
+      return res.json({
+        type: "pending",
+        department: departmentData,
+        workspace: departmentData.workspaceId || null,
+      });
+    }
 
-    if (user.requestStatus === "approved")
-      return res.json({ type: "assigned", department: user.departmentId });
+    // ✅ Approved Request
+    if (user.requestStatus === "approved") {
+      return res.json({
+        type: "assigned",
+        department: departmentData,
+        workspace: departmentData.workspaceId || null,
+      });
+    }
 
-    if (user.requestStatus === "rejected")
-      return res.json({ type: "independent" });
-
-    return res.json({ type: "independent" });
+    // ❗ Rejected or Independent
+    return res.json({
+      type: "independent",
+    });
   } catch (err) {
     console.error("dashboardStatus error:", err);
-    res.status(500).json({ message: "Server error" });
+
+    res.status(500).json({
+      type: "error",
+      message: "Server error",
+    });
   }
 };
 
@@ -225,13 +281,12 @@ exports.approveRequest = async (req, res) => {
     const { userId } = req.params;
 
     const user = await User.findById(userId).session(session);
-    if (!user)
-      return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     if (!user.departmentId)
       return res.status(400).json({ message: "No department request found" });
 
-    const deptId = user.departmentId;   // 🔥 store before anything changes
+    const deptId = user.departmentId; // 🔥 store before anything changes
 
     const department = await Department.findById(deptId).session(session);
     if (!department)
@@ -249,7 +304,7 @@ exports.approveRequest = async (req, res) => {
           role: "department_head",
         },
       },
-      { session }
+      { session },
     );
 
     // ✅ Reset ALL other pending users (IMPORTANT: no object recreation)
@@ -266,7 +321,7 @@ exports.approveRequest = async (req, res) => {
           role: "user",
         },
       },
-      { session }
+      { session },
     );
 
     console.log("Reset count:", result.modifiedCount);
@@ -281,14 +336,13 @@ exports.approveRequest = async (req, res) => {
           headsRequestedBy: [],
         },
       },
-      { session }
+      { session },
     );
 
     await session.commitTransaction();
     session.endSession();
 
     res.json({ message: "Approved successfully" });
-
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -362,6 +416,54 @@ exports.getPendingRequests = async (req, res) => {
     res.json(formatted);
   } catch (err) {
     console.error("getPendingRequests error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ===============================
+// ✅ Staff Join Request (NEW)
+// ===============================
+exports.sendStaffJoinRequest = async (req, res) => {
+  try {
+    const { departmentId } = req.body;
+
+    if (!departmentId) {
+      return res.status(400).json({ message: "Department Id required" });
+    }
+
+    const user = await User.findById(req.userId);
+    const department = await Department.findById(departmentId);
+
+    if (!user || !department) {
+      return res.status(404).json({ message: "User or Department not found" });
+    }
+
+    // ✅ Only allow ACTIVE department
+    if (department.status !== "active") {
+      return res.status(400).json({
+        message: "Staff can only join active departments",
+      });
+    }
+
+    // ✅ Prevent multiple pending requests
+    if (user.requestStatus === "pending") {
+      return res.status(400).json({
+        message: "Aapki request already pending hai",
+      });
+    }
+
+    // ✅ Assign department
+    user.departmentId = department._id;
+    user.requestStatus = "pending";
+    user.role = "user"; // still user until approved
+
+    await user.save();
+
+    res.json({
+      message: "Staff joining request sent successfully",
+    });
+  } catch (error) {
+    console.error("sendStaffJoinRequest error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

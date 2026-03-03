@@ -1,5 +1,6 @@
 
 
+//backend\routes\joinRoutes.js
 const express = require("express");
 
 const {
@@ -10,6 +11,9 @@ const {
   approveRequest,
   rejectRequest,
   getPendingRequests,
+  sendStaffJoinRequest,
+  approveStaffRequest,
+  rejectStaffRequest,
 } = require("../controllers/joinController");
 
 const authenticate = require("../middleware/authMiddleware");
@@ -17,43 +21,75 @@ const allowRoles = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
-// Workspace preview
+/*
+========================================
+Workspace Preview
+========================================
+*/
 router.post("/preview", authenticate, joinWorkspacePreview);
 
-// Join workspace request
+/*
+========================================
+Join Workspace Department Request
+========================================
+*/
 router.post("/request", authenticate, sendDepartmentRequest);
 
-// ✅ Department head request page
+/*
+========================================
+Department Head Request Page
+========================================
+*/
 router.post(
   "/send-department-request",
   authenticate,
-  sendDepartmentHeadRequest,
+  sendDepartmentHeadRequest
 );
 
-// Dashboard status
+/*
+========================================
+Dashboard Status
+========================================
+*/
 router.get("/dashboard-status", authenticate, dashboardStatus);
 
-// ✅ GM approve/reject (ONLY GM)
+/*
+========================================
+GM Approve / Reject
+========================================
+*/
 router.patch(
   "/requests/:userId/approve",
   authenticate,
   allowRoles("general_manager"),
-  approveRequest,
+  approveRequest
 );
 
 router.patch(
   "/requests/:userId/reject",
   authenticate,
   allowRoles("general_manager"),
-  rejectRequest,
+  rejectRequest
 );
 
-// Get pending requests (GM)
+/*
+========================================
+Pending Requests GM Panel
+========================================
+*/
 router.get(
   "/pending-requests",
   authenticate,
   allowRoles("general_manager"),
-  getPendingRequests,
+  getPendingRequests
 );
+
+/*
+========================================
+Staff Workflow (✔ Fixed Crash Risk)
+========================================
+*/
+
+// Staff join request
 
 module.exports = router;

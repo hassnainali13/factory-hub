@@ -1,4 +1,4 @@
-
+//backend\controllers\departmentController.js
 const User = require("../models/User");
 const Department = require("../models/Department");
 // ✅ Get departments by workspace
@@ -165,6 +165,109 @@ exports.approveHeadRequest = async (req, res) => {
     });
   } catch (error) {
     console.error("Error approving head request:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.getMyDepartment = async (req, res) => {
+  try {
+    const userId = req.user.id; // ⚠️ must come from auth middleware
+
+    const department = await Department.findOne({
+      deptHeadId: userId,
+    })
+      .populate({
+        path: "workspaceId",
+        select: "name logo status",
+      })
+      .populate({
+        path: "deptHeadId",
+        select: "name email role profileImage",
+      });
+
+    if (!department) {
+      return res.status(404).json({
+        message: "No department assigned to this head",
+      });
+    }
+
+    res.json({
+      department,
+    });
+
+  } catch (error) {
+    console.error("getMyDepartment error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// ===============================
+// ✅ Department Head Approve Staff
+// ===============================
+exports.approveStaffRequest = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const head = await User.findById(req.userId);
+    if (!head || head.role !== "department_head") {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.departmentId) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // ✅ Ensure same department
+    const department = await Department.findOne({
+      _id: user.departmentId,
+      deptHeadId: head._id,
+    });
+
+    if (!department) {
+      return res.status(403).json({
+        message: "You can only approve your department staff",
+      });
+    }
+
+    user.requestStatus = "approved";
+    user.role = "staff";
+    await user.save();
+
+    res.json({ message: "Staff approved successfully" });
+  } catch (error) {
+    console.error("approveStaffRequest error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+// ===============================
+// ✅ Department Head Reject Staff
+// ===============================
+exports.rejectStaffRequest = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const head = await User.findById(req.userId);
+    if (!head || head.role !== "department_head") {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.departmentId = null;
+    user.requestStatus = null;
+    user.role = "user";
+
+    await user.save();
+
+    res.json({ message: "Staff request rejected" });
+  } catch (error) {
+    console.error("rejectStaffRequest error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

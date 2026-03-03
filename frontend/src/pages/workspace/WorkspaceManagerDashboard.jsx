@@ -6,7 +6,8 @@ import useWorkspaceDetails from "../../hooks/useWorkspaceDetails";
 import useAuthActions from "../../hooks/useAuthActions";
 import useDropdown from "../../hooks/useDropdown";
 import axiosInstance from "../../api/axiosInstance";
-
+import CustomBarChart from "../../components/BarChart";
+import CustomLineChart from "../../components/LineChart";
 import SidebarItem from "../../components/SidebarItem";
 import KpiCard from "../../components/KpiCard";
 import DepartmentOverviewTable from "./components/DepartmentOverviewTable";
@@ -28,18 +29,7 @@ import {
   Settings,
 } from "lucide-react";
 
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  LineChart,
-  Line,
-  Legend,
-} from "recharts";
+
 
 // KPI Cards data
 const kpiCards = [
@@ -110,7 +100,7 @@ export default function WorkspaceManagerDashboard() {
       setWorkspaceId(user.workspaceId._id || user.workspaceId);
       localStorage.setItem(
         "workspaceId",
-        user.workspaceId._id || user.workspaceId
+        user.workspaceId._id || user.workspaceId,
       );
     } else {
       const storedId = localStorage.getItem("workspaceId");
@@ -126,11 +116,15 @@ export default function WorkspaceManagerDashboard() {
     if (!workspaceId) return;
 
     try {
-      const res = await axiosInstance.get(`/departments?workspaceId=${workspaceId}`);
+      const res = await axiosInstance.get(
+        `/departments?workspaceId=${workspaceId}`,
+      );
       setDepartments(res.data);
 
       const allPending = res.data.flatMap((d) =>
-        Array.isArray(d.users) ? d.users.filter((u) => u.requestStatus === "pending") : []
+        Array.isArray(d.users)
+          ? d.users.filter((u) => u.requestStatus === "pending")
+          : [],
       );
       setPendingRequests(allPending);
     } catch (err) {
@@ -182,26 +176,28 @@ export default function WorkspaceManagerDashboard() {
   };
 
   const pendingDepartments = departments.filter(
-    (d) => d.status?.toLowerCase() === "pending"
+    (d) => d.status?.toLowerCase() === "pending",
   );
   const activeDepartments = departments.filter(
-    (d) => d.status?.toLowerCase() === "active"
+    (d) => d.status?.toLowerCase() === "active",
   );
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500 mb-4"></div>
-        <div className="text-lg font-medium text-slate-600">
-          Loading dashboard...
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-20 h-20 bg-purple-200 blur-2xl rounded-full animate-pulse"></div>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin relative"></div>
         </div>
-        <div className="text-sm text-slate-400 mt-1">
-          Please wait while we fetch your workspace data.
-        </div>
+
+        <p className="mt-6 text-lg font-semibold text-gray-800">
+          Loading Dashboard
+        </p>
+
+        <p className="text-xs text-gray-400 mt-1">Please wait...</p>
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto flex max-w-[1440px] gap-6 p-4 md:p-6">
@@ -310,7 +306,10 @@ export default function WorkspaceManagerDashboard() {
                 <Bell className="h-4 w-4" />
               </button>
 
-              <div ref={dropdownRef} className="relative inline-block text-left">
+              <div
+                ref={dropdownRef}
+                className="relative inline-block text-left"
+              >
                 <button
                   onClick={toggle}
                   className="flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 hover:bg-gray-100 transition-colors"
@@ -319,7 +318,9 @@ export default function WorkspaceManagerDashboard() {
                     {userInitial}
                   </div>
                   <div className="hidden text-left sm:block">
-                    <p className="text-sm font-medium text-slate-900">{userName}</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {userName}
+                    </p>
                     <p className="text-[10px] text-slate-500">{userEmail}</p>
                   </div>
                 </button>
@@ -357,88 +358,24 @@ export default function WorkspaceManagerDashboard() {
                   <h2 className="text-base font-semibold text-slate-900">
                     Employees per Department
                   </h2>
-                  <div className="mt-4" style={{ width: "100%", height: 300 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={departmentsData} barSize={38}>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          vertical={false}
-                          stroke="#f1f5f9"
-                        />
-                        <XAxis
-                          dataKey="name"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 12, fill: "#64748b" }}
-                        />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 12, fill: "#64748b" }}
-                        />
-                        <Tooltip
-                          cursor={{ fill: "#f8fafc" }}
-                          contentStyle={{
-                            borderRadius: "12px",
-                            border: "none",
-                            boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                          }}
-                        />
-                        <Bar dataKey="employees" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <CustomBarChart
+                    data={departmentsData}
+                    xKey="name"
+                    yKey="employees"
+                  />
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <h2 className="text-base font-semibold text-slate-900">
                     Monthly Growth
                   </h2>
-                  <div className="mt-4" style={{ width: "100%", height: 300 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={monthlyGrowthData}>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          vertical={false}
-                          stroke="#f1f5f9"
-                        />
-                        <XAxis
-                          dataKey="month"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 12, fill: "#64748b" }}
-                        />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 12, fill: "#64748b" }}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            borderRadius: "12px",
-                            border: "none",
-                            boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                          }}
-                        />
-                        <Legend iconType="circle" />
-                        <Line
-                          type="monotone"
-                          dataKey="users"
-                          stroke="#6366f1"
-                          strokeWidth={3}
-                          dot={{ r: 4, fill: "#6366f1" }}
-                          activeDot={{ r: 6 }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="approvals"
-                          stroke="#f59e0b"
-                          strokeWidth={3}
-                          dot={{ r: 4, fill: "#f59e0b" }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <CustomLineChart
+                    data={monthlyGrowthData}
+                    lines={[
+                      { dataKey: "users", color: "#6366f1" },
+                      { dataKey: "approvals", color: "#f59e0b" },
+                    ]}
+                  />
                 </div>
               </section>
 
@@ -453,7 +390,9 @@ export default function WorkspaceManagerDashboard() {
                 open={isRequestModalOpen}
                 onClose={handleCloseRequests}
                 department={selectedDepartment}
-                pendingRequests={Array.isArray(pendingRequests) ? pendingRequests : []}
+                pendingRequests={
+                  Array.isArray(pendingRequests) ? pendingRequests : []
+                }
                 onApprove={handleApprove}
                 onReject={handleReject}
               />
@@ -484,7 +423,9 @@ export default function WorkspaceManagerDashboard() {
                 open={isRequestModalOpen}
                 onClose={handleCloseRequests}
                 department={selectedDepartment}
-                pendingRequests={Array.isArray(pendingRequests) ? pendingRequests : []}
+                pendingRequests={
+                  Array.isArray(pendingRequests) ? pendingRequests : []
+                }
                 onApprove={handleApprove}
                 onReject={handleReject}
               />

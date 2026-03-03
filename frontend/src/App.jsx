@@ -12,7 +12,7 @@ import JoinWorkspace from "./pages/auth/JoinWorkspace";
 import DepartmentProcessPage from "./pages/auth/DepartmentProcessPage";
 import GMRequests from "./pages/workspace/components/GMRequests";
 import DepartmentHeadRequestsListWrapper from "./pages/workspace/components/DepartmentHeadRequestsList";
-
+import StaffDashboard from "./pages/staff/StaffDashboard";
 //frontend\src\pages\workspace\components\DepartmentHeadRequests.jsx
 
 // ✅ NEW PAGE IMPORT
@@ -57,10 +57,12 @@ export default function App() {
         path="/workspace/dashboard"
         element={<WorkspaceManagerDashboard />}
       />
+      <Route path="/staff/dashboard" element={<StaffDashboard />} />
       <Route
         path="/department/dashboard"
         element={<DepartmentHeadDashboard />}
       />
+
 
       {/* Default route */}
       <Route path="/" element={<Navigate to="/login" replace />} />

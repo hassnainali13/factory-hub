@@ -7,9 +7,10 @@ import SidebarItem from "../../components/SidebarItem";
 import KpiCard from "../../components/KpiCard";
 import StatusPill from "../../components/StatusPill";
 import useAllWorkspaces from "../../hooks/useViewWorkspaces";
-import WorkspaceDetailModal from "./WorkspaceDetailModal";
-
-import WorkspacesOverviewTable from "./WorkspacesOverviewTable";
+import WorkspaceDetailModal from "./components/WorkspaceDetailModal";
+import CustomBarChart from "../../components/BarChart";
+import CustomLineChart from "../../components/LineChart";
+import WorkspacesOverviewTable from "./components/WorkspacesOverviewTable";
 
 import {
   Bell,
@@ -24,54 +25,9 @@ import {
   Settings,
 } from "lucide-react";
 
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  LineChart,
-  Line,
-  Legend,
-} from "recharts";
 
-const kpiCards = [
-  {
-    title: "Total Workspaces",
-    value: 8,
-    delta: "+2 this month",
-    icon: Boxes,
-    accent: "text-blue-600",
-    bg: "bg-blue-50",
-  },
-  {
-    title: "Total Admins",
-    value: 24,
-    delta: "+3 this month",
-    icon: Shield,
-    accent: "text-violet-600",
-    bg: "bg-violet-50",
-  },
-  {
-    title: "Total Employees",
-    value: 476,
-    delta: "+42 this month",
-    icon: Users,
-    accent: "text-emerald-600",
-    bg: "bg-emerald-50",
-  },
-  {
-    title: "Pending Approvals",
-    value: 11,
-    delta: "Requires attention",
-    icon: CheckSquare,
-    accent: "text-orange-700",
-    bg: "bg-orange-50",
-    border: "border-orange-200",
-  },
-];
+
+
 
 const employeesPerWorkspace = [
   { name: "Oil Factory", employees: 145 },
@@ -135,14 +91,17 @@ export default function SuperAdminDashboard() {
   // ✅ Ab returns
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500 mb-4"></div>
-        <div className="text-lg font-medium text-slate-600">
-          Loading dashboard...
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-20 h-20 bg-purple-200 blur-2xl rounded-full animate-pulse"></div>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin relative"></div>
         </div>
-        <div className="text-sm text-slate-400 mt-1">
-          Please wait while we fetch your workspace data.
-        </div>
+
+        <p className="mt-6 text-lg font-semibold text-gray-800">
+          Loading Dashboard
+        </p>
+
+        <p className="text-xs text-gray-400 mt-1">Please wait...</p>
       </div>
     );
   }
@@ -361,95 +320,28 @@ export default function SuperAdminDashboard() {
                   <h2 className="text-base font-semibold text-slate-900">
                     Employees per Workspace
                   </h2>
-                  <div className="h-[260px] mt-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={employeesPerWorkspace} barSize={38}>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          vertical={false}
-                          stroke="#f1f5f9"
-                        />
-                        <XAxis
-                          dataKey="name"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 12, fill: "#64748b" }}
-                        />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 12, fill: "#64748b" }}
-                        />
-                        <Tooltip
-                          cursor={{ fill: "#f8fafc" }}
-                          contentStyle={{
-                            borderRadius: "12px",
-                            border: "none",
-                            boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                          }}
-                        />
-                        <Bar
-                          dataKey="employees"
-                          fill="#3b82f6"
-                          radius={[6, 6, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+
+                  <CustomBarChart
+                    data={employeesPerWorkspace}
+                    xKey="name"
+                    yKey="employees"
+                  />
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <h2 className="text-base font-semibold text-slate-900">
                     Monthly Growth
                   </h2>
-                  <div className="h-[260px] mt-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={monthlyGrowth}>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          vertical={false}
-                          stroke="#f1f5f9"
-                        />
-                        <XAxis
-                          dataKey="month"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 12, fill: "#64748b" }}
-                        />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 12, fill: "#64748b" }}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            borderRadius: "12px",
-                            border: "none",
-                            boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                          }}
-                        />
-                        <Legend iconType="circle" />
-                        <Line
-                          type="monotone"
-                          dataKey="users"
-                          stroke="#6366f1"
-                          strokeWidth={3}
-                          dot={{ r: 4, fill: "#6366f1" }}
-                          activeDot={{ r: 6 }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="approvals"
-                          stroke="#f59e0b"
-                          strokeWidth={3}
-                          dot={{ r: 4, fill: "#f59e0b" }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
+
+                  <CustomLineChart
+                    data={monthlyGrowth}
+                    lines={[
+                      { dataKey: "users", color: "#6366f1" },
+                      { dataKey: "approvals", color: "#f59e0b" },
+                    ]}
+                  />
                 </div>
               </section>
-
               {/* Workspaces Overview (ONLY 5) */}
               <WorkspacesOverviewTable
                 title="Workspaces Overview"

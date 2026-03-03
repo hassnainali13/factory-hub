@@ -1,75 +1,135 @@
-//frontend\src\pages\auth\DepartmentProcessPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../api/axiosInstance";
+import { ArrowLeft, Building2, Loader2, Clock } from "lucide-react";
+
+const API_BASE = "http://localhost:5000";
 
 export default function DepartmentProcessPage() {
   const navigate = useNavigate();
 
   const [department, setDepartment] = useState(null);
+  const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
+
     const fetchStatus = async () => {
       try {
         const res = await axiosInstance.get("/join/dashboard-status");
         const data = res.data;
 
+        if (!active) return;
+
         if (data.type === "pending") {
           setDepartment(data.department);
+          setWorkspace(data.workspace);
         } else if (data.type === "assigned") {
-          navigate("/department/dashboard");
-        } else if (data.type === "noDepartment") {
-          navigate("/join-workspace");
+          navigate("/department/dashboard", { replace: true });
         } else {
-          navigate("/join-workspace");
+          navigate("/join-workspace", { replace: true });
         }
+
       } catch (err) {
         console.error(err);
-        navigate("/join-workspace");
+        navigate("/join-workspace", { replace: true });
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     fetchStatus();
+
+    return () => {
+      active = false;
+    };
   }, [navigate]);
+
+  const logoSrc = useMemo(() => {
+    if (!workspace?.logo) return null;
+    return `${API_BASE}/${workspace.logo.replace(/\\/g, "/")}`;
+  }, [workspace]);
 
   const handleBackToLogin = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-500 font-medium">Checking request status...</p>
+ if (loading) {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+
+      <div className="relative flex items-center justify-center">
+        <div className="absolute w-20 h-20 bg-purple-200 blur-2xl rounded-full animate-pulse"></div>
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin relative"></div>
       </div>
-    );
-  }
+
+      <p className="mt-6 text-lg font-semibold text-gray-800">
+        Loading Dashboard
+      </p>
+
+      <p className="text-xs text-gray-400 mt-1">
+        Please wait...
+      </p>
+
+    </div>
+  );
+}
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50">
-      <div className="w-full max-w-lg bg-white p-7 rounded-2xl shadow-md text-center">
-        <h2 className="text-2xl font-bold text-slate-900 mb-3">
-          Request Pending
-        </h2>
+    <div className="min-h-screen flex items-center justify-center bg-white p-6">
 
-        <p className="text-slate-600">
-          Your request to become head of the department{" "}
-          <span className="font-semibold text-slate-900">
-            "{department?.department}"
-          </span>{" "}
-          is pending approval.
-        </p>
+      <div className="w-full max-w-md bg-white border border-gray-200 shadow-xl rounded-3xl p-7 space-y-7">
 
+        {/* Header */}
+        <div className="flex items-center gap-4">
+
+          {logoSrc ? (
+            <img
+              src={logoSrc}
+              alt="Workspace Logo"
+              className="w-16 h-16 rounded-2xl object-cover border shadow-sm"
+              onError={(e) => (e.target.src = "/default-workspace.png")}
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-gray-900 flex items-center justify-center text-white">
+              {workspace?.name?.charAt(0) || <Building2 className="w-6 h-6" />}
+            </div>
+          )}
+
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-bold text-gray-900 truncate">
+              {workspace?.name || "Workspace Name"}
+            </h2>
+            <p className="text-xs text-gray-500">
+              Department Request Under Review
+            </p>
+          </div>
+
+        </div>
+
+        {/* Status Card */}
+        <div className="border border-gray-200 rounded-2xl p-6 text-center bg-gray-50">
+          <p className="text-sm text-gray-600 leading-relaxed">
+            Department request for{" "}
+            <span className="font-semibold text-gray-900">
+              "{department?.department || "Department"}"
+            </span>{" "}
+            is currently under review by workspace administrators.
+          </p>
+        </div>
+
+        {/* Footer Button (Only Hover Effect) */}
         <button
           onClick={handleBackToLogin}
-          className="mt-6 w-full py-2 rounded-xl bg-black text-white font-semibold hover:bg-slate-800 transition"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-black text-white text-sm font-semibold transition hover:bg-gray-800 active:scale-95 shadow-md"
         >
+          <ArrowLeft size={16} />
           Back to Login
         </button>
+
       </div>
     </div>
   );

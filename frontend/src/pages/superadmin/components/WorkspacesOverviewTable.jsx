@@ -1,7 +1,7 @@
 //frontend\src\pages\superadmin\WorkspacesOverviewTable.jsx
 import React, { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import StatusPill from "../../components/StatusPill";
+import StatusPill from "../../../components/StatusPill";
 
 const WorkspacesOverviewTable = ({
   title = "Workspaces Overview",
@@ -138,13 +138,12 @@ const WorkspacesOverviewTable = ({
       )}
 
       {openWorkspace && WorkspaceDetailModal && (
-  <WorkspaceDetailModal
-    workspaceId={openWorkspace}
-    apiBaseUrl={apiBaseUrl}
-    onClose={() => onCloseModal?.()}
-  />
-)}
-
+        <WorkspaceDetailModal
+          workspaceId={openWorkspace}
+          apiBaseUrl={apiBaseUrl}
+          onClose={() => onCloseModal?.()}
+        />
+      )}
     </section>
   );
 };

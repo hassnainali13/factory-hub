@@ -1,3 +1,4 @@
+//frontend\src\pages\auth\JoinWorkspace.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../api/axiosInstance";
@@ -7,12 +8,15 @@ export default function JoinWorkspace() {
 
   const [workspaceCode, setWorkspaceCode] = useState("");
   const [checking, setChecking] = useState(false);
-  const [exists, setExists] = useState(null); // null | true | false
+  const [exists, setExists] = useState(null);
 
   const [workspace, setWorkspace] = useState(null);
   const [departments, setDepartments] = useState([]);
 
   const [error, setError] = useState("");
+
+  // ✅ NEW: selected department for active status
+  const [selectedDept, setSelectedDept] = useState(null);
 
   // 🔹 Workspace preview check
   useEffect(() => {
@@ -20,6 +24,7 @@ export default function JoinWorkspace() {
       setExists(null);
       setWorkspace(null);
       setDepartments([]);
+      setSelectedDept(null);
       setError("");
       return;
     }
@@ -49,13 +54,12 @@ export default function JoinWorkspace() {
 
         setWorkspace(workspaceData);
         setDepartments(workspaceData.departments);
-
         setExists(true);
       } catch (err) {
         setExists(false);
         setWorkspace(null);
         setDepartments([]);
-
+        setSelectedDept(null);
         setError(err.response?.data?.message || "Workspace not found");
       } finally {
         setChecking(false);
@@ -65,14 +69,20 @@ export default function JoinWorkspace() {
     return () => clearTimeout(timeout);
   }, [workspaceCode]);
 
-  // ✅ Department select logic (NEW)
+  // ✅ UPDATED Department select logic
   const handleSelectDepartment = (dept) => {
     if (!dept?._id) return;
 
     const status = (dept.status || "").toLowerCase();
 
-    // ✅ If department disabled OR pending → open request page
-    if (status === "disabled" || status === "pending") {
+    // 🔵 If ACTIVE → just select (no navigation)
+    if (status === "active") {
+      setSelectedDept(dept);
+      return;
+    }
+
+    // 🟡 If pending OR disabled → OLD workflow (unchanged)
+    if (status === "pending" || status === "disabled") {
       navigate("/department-head-request", {
         state: {
           workspaceId: workspace?._id,
@@ -80,13 +90,6 @@ export default function JoinWorkspace() {
           departmentName: dept.department || dept.name,
         },
       });
-      return;
-    }
-
-    // ✅ If active → already assigned
-    if (status === "active") {
-      setError("This department already has a head assigned.");
-      return;
     }
   };
 
@@ -179,45 +182,41 @@ export default function JoinWorkspace() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {departments.map((dept) => {
+                  const headName = dept.headName;
                   const status = (dept.status || "").toLowerCase();
-
-                  const isActive = status === "active";
-                  const isPending = status === "pending";
-                  const isDisabled = status === "disabled";
+                  const isSelected = selectedDept?._id === dept._id;
 
                   return (
                     <button
                       key={dept._id}
-                      disabled={false} // 👈 allow click always (we handle logic)
                       onClick={() => {
                         setError("");
                         handleSelectDepartment(dept);
                       }}
                       className={`p-3 rounded-xl border text-left transition
-                      ${
-                        isActive
-                          ? "bg-slate-100 border-slate-200 text-slate-400"
-                          : "bg-white border-slate-200 hover:border-blue-300"
-                      }`}
+                        ${
+                          isSelected
+                            ? "border-blue-500 bg-blue-50"
+                            : "bg-white border-slate-200 hover:border-blue-300"
+                        }`}
                     >
                       <p className="font-semibold">
                         {dept.department || dept.name}
                       </p>
 
                       <p className="text-xs text-slate-500 mt-1">
-                        Status:{" "}
-                        <span className="font-semibold">{dept.status}</span>
+                        {headName
+                          ? `Department Head: ${headName}`
+                          : "No Department Head Assigned"}
                       </p>
 
-                      {isActive && (
-                        <p className="text-xs text-red-500 mt-1">
-                          Department head already assigned
+                      {status === "active" ? (
+                        <p className="text-xs text-blue-600 mt-1">
+                          Click to Join as Staff
                         </p>
-                      )}
-
-                      {(isPending || isDisabled) && (
+                      ) : (
                         <p className="text-xs text-green-600 mt-1">
-                          Available for request
+                          Become Department Head
                         </p>
                       )}
                     </button>
@@ -226,12 +225,31 @@ export default function JoinWorkspace() {
               </div>
             )}
 
-            {/* Error */}
-            {error && (
-              <p className="text-sm text-red-500 mt-4 font-medium">{error}</p>
+            {/* ✅ NEW: Show Send Request button ONLY when active department selected */}
+            {selectedDept && (
+              <button
+                onClick={() =>
+                  navigate("/staff-join-request", {
+                    state: {
+                      workspaceId: workspace?._id,
+                      departmentId: selectedDept._id,
+                      departmentName:
+                        selectedDept.department || selectedDept.name,
+                    },
+                  })
+                }
+                className="mt-4 w-full py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition"
+              >
+                Send Request
+              </button>
             )}
 
-            {/* Back button */}
+            {error && (
+              <p className="text-sm text-red-500 mt-4 font-medium">
+                {error}
+              </p>
+            )}
+
             <button
               onClick={() => navigate("/login")}
               className="mt-4 w-full py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition"

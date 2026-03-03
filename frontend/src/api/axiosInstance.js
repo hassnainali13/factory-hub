@@ -1,3 +1,4 @@
+//frontend\src\api\axiosInstance.js
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -9,6 +10,8 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
+    // console.log("SENDING TOKEN:", token); // 👈 add this
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
