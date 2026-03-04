@@ -86,7 +86,7 @@ export default function DepartmentHeadRequestPage() {
             </button>
 
             <button
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/join-workspace")}
               className="mt-4 w-full py-3 rounded-2xl border border-gray-300 text-gray-600 hover:bg-gray-50"
             >
               Back

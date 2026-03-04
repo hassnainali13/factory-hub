@@ -65,13 +65,18 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    staffId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Staff",
+      default: null,
+    },
 
     resetTokenExpiry: {
       type: Date,
       default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("User", userSchema);

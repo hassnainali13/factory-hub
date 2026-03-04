@@ -39,7 +39,7 @@ export default function JoinWorkspace() {
         const res = await axiosInstance.post(
           "/join/preview",
           { workspaceCode },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
 
         const workspaceData = {
@@ -145,7 +145,7 @@ export default function JoinWorkspace() {
                 <img
                   src={`http://localhost:5000/${workspace.logo.replaceAll(
                     "\\",
-                    "/"
+                    "/",
                   )}`}
                   alt="Workspace Logo"
                   className="w-14 h-14 rounded-full object-cover"
@@ -229,13 +229,8 @@ export default function JoinWorkspace() {
             {selectedDept && (
               <button
                 onClick={() =>
-                  navigate("/staff-join-request", {
-                    state: {
-                      workspaceId: workspace?._id,
-                      departmentId: selectedDept._id,
-                      departmentName:
-                        selectedDept.department || selectedDept.name,
-                    },
+                  navigate("/staff-join-confirm", {
+                    state: { department: selectedDept },
                   })
                 }
                 className="mt-4 w-full py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition"
@@ -245,9 +240,7 @@ export default function JoinWorkspace() {
             )}
 
             {error && (
-              <p className="text-sm text-red-500 mt-4 font-medium">
-                {error}
-              </p>
+              <p className="text-sm text-red-500 mt-4 font-medium">{error}</p>
             )}
 
             <button

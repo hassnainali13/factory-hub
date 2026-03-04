@@ -14,6 +14,11 @@ import GMRequests from "./pages/workspace/components/GMRequests";
 import DepartmentHeadRequestsListWrapper from "./pages/workspace/components/DepartmentHeadRequestsList";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 //frontend\src\pages\workspace\components\DepartmentHeadRequests.jsx
+import StaffJoinConfirm from "./pages/auth/StaffJoinConfirm";
+import StaffProcessingPage from "./pages/auth/StaffProcessingPage";
+
+
+
 
 // ✅ NEW PAGE IMPORT
 import DepartmentHeadRequestPage from "./pages/auth/DepartmentHeadRequestPage";
@@ -42,6 +47,12 @@ export default function App() {
         path="/workspace/department-processing"
         element={<DepartmentProcessPage />}
       />
+      {/* ✅ NEW: Staff pending approval page */}
+      <Route
+        path="/staff/staff-processing"
+        element={<StaffProcessingPage />}
+      />
+
       {/* ✅ NEW: Department Head Request Page */}
       <Route
         path="/department-head-request"
@@ -61,6 +72,10 @@ export default function App() {
       <Route
         path="/department/dashboard"
         element={<DepartmentHeadDashboard />}
+      />
+      <Route
+        path="/staff-join-confirm"
+        element={<StaffJoinConfirm />}
       />
 
 

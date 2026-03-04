@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../api/axiosInstance";
 import CustomBarChart from "../../components/BarChart";
 import CustomLineChart from "../../components/LineChart";
+import useStaffOverview from "../../hooks/useStaffOverview";
 import {
   Bell,
   Search,
@@ -34,9 +35,11 @@ export default function DepartmentHeadDashboard() {
   const [activePage, setActivePage] = useState("dashboard");
 
   const user = JSON.parse(localStorage.getItem("user"));
-
-  /* Dummy Data */
-
+const { staff = [] } = useStaffOverview();
+const { staff: staffRequests = [] } = useStaffOverview();
+useEffect(() => {
+  console.log("Staff Requests Data:", staffRequests);
+}, [staffRequests]);
   const dummyDepartment = {
     department: "HR Department",
     workspaceId: {
@@ -426,7 +429,7 @@ export default function DepartmentHeadDashboard() {
               </section>
 
               <DepartmentStaffTable
-                employees={displayEmployees.slice(0, 5)}
+                employees={staffRequests}
                 onApprove={handleApprove}
                 onReject={handleReject}
                 onView={handleView}

@@ -14,6 +14,8 @@ const {
   rejectDepartment,
   approveHeadRequest,
   getMyDepartment,
+  getDepartmentStaffOverview,
+  getStaffOverview,
 } = require("../controllers/departmentController");
 
 // ✅ GET departments (workspaceId required)
@@ -52,6 +54,16 @@ allowRoles("general_manager", "industry_head"),
 );
 
 router.get("/my-department", authenticate, getMyDepartment);
-
+router.get(
+  "/staff-overview",
+  authenticate,
+  allowRoles("department_head"),
+  getDepartmentStaffOverview
+);
+router.get(
+  "/staff-overview",
+  authenticate,
+  getStaffOverview
+);
 
 module.exports = router;

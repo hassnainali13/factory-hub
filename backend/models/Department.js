@@ -14,8 +14,8 @@ const departmentSchema = new mongoose.Schema(
       default: null,
     },
 
-    employees: { type: Number, default: 0 },
-
+employeesLimit: { type: Number, required: true }, // 🔥 MAX LIMIT
+  currentEmployees: { type: Number, default: 0 },   // 🔥 APPROVED COUNT
     status: {
       type: String,
       enum: ["pending", "active", "disabled"],

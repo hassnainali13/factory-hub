@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 // const User = require("../models/User");
 const Workspace = require("../models/Workspace");
 // const Department = require("../models/Department");
-
+const Staff = require("../models/Staff");
 // backend/controllers/joinController.js
 const User = require("../models/User");
 const Department = require("../models/Department");
@@ -425,45 +425,82 @@ exports.getPendingRequests = async (req, res) => {
 // ===============================
 exports.sendStaffJoinRequest = async (req, res) => {
   try {
-    const { departmentId } = req.body;
 
-    if (!departmentId) {
-      return res.status(400).json({ message: "Department Id required" });
-    }
+    const userId = req.user?.id;
 
-    const user = await User.findById(req.userId);
-    const department = await Department.findById(departmentId);
-
-    if (!user || !department) {
-      return res.status(404).json({ message: "User or Department not found" });
-    }
-
-    // ✅ Only allow ACTIVE department
-    if (department.status !== "active") {
-      return res.status(400).json({
-        message: "Staff can only join active departments",
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized user"
       });
     }
 
-    // ✅ Prevent multiple pending requests
-    if (user.requestStatus === "pending") {
-      return res.status(400).json({
-        message: "Aapki request already pending hai",
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
       });
     }
 
-    // ✅ Assign department
-    user.departmentId = department._id;
+    const existing = await Staff.findOne({ userId });
+
+    if (existing) {
+      return res.status(400).json({
+        message: "Request already exists"
+      });
+    }
+
+    const staff = await Staff.create({
+      userId,
+      departmentId: req.body.departmentId,
+      status: "pending"
+    });
+
     user.requestStatus = "pending";
-    user.role = "user"; // still user until approved
-
     await user.save();
 
     res.json({
-      message: "Staff joining request sent successfully",
+      message: "Staff request sent successfully"
     });
+
   } catch (error) {
-    console.error("sendStaffJoinRequest error:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error(error);
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};
+exports.getStaffStatus = async (req, res) => {
+  try {
+    const staff = await Staff.findOne({ userId: req.userId })
+      .populate({
+        path: "departmentId",
+        populate: {
+          path: "workspaceId",
+          select: "name logo"
+        }
+      });
+
+    if (!staff) {
+      return res.json({ type: "none" });
+    }
+
+    if (staff.status === "pending") {
+      return res.json({
+        type: "pending",
+        department: staff.departmentId,
+        workspace: staff.departmentId?.workspaceId || null
+      });
+    }
+
+    if (staff.status === "approved") {
+      return res.json({ type: "approved" });
+    }
+
+    return res.json({ type: "none" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ type: "error" });
   }
 };

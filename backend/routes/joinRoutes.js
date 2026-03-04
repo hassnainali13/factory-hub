@@ -1,5 +1,3 @@
-
-
 //backend\routes\joinRoutes.js
 const express = require("express");
 
@@ -14,6 +12,8 @@ const {
   sendStaffJoinRequest,
   approveStaffRequest,
   rejectStaffRequest,
+  getStaffStatus,
+  
 } = require("../controllers/joinController");
 
 const authenticate = require("../middleware/authMiddleware");
@@ -43,7 +43,7 @@ Department Head Request Page
 router.post(
   "/send-department-request",
   authenticate,
-  sendDepartmentHeadRequest
+  sendDepartmentHeadRequest,
 );
 
 /*
@@ -62,14 +62,14 @@ router.patch(
   "/requests/:userId/approve",
   authenticate,
   allowRoles("general_manager"),
-  approveRequest
+  approveRequest,
 );
 
 router.patch(
   "/requests/:userId/reject",
   authenticate,
   allowRoles("general_manager"),
-  rejectRequest
+  rejectRequest,
 );
 
 /*
@@ -81,7 +81,7 @@ router.get(
   "/pending-requests",
   authenticate,
   allowRoles("general_manager"),
-  getPendingRequests
+  getPendingRequests,
 );
 
 /*
@@ -89,7 +89,16 @@ router.get(
 Staff Workflow (✔ Fixed Crash Risk)
 ========================================
 */
-
-// Staff join request
+router.post(
+  "/send-staff-request",
+  authenticate,
+  allowRoles("user"),
+  sendStaffJoinRequest,
+);
+router.get(
+  "/staff-status",
+  authenticate,
+  getStaffStatus
+);
 
 module.exports = router;

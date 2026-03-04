@@ -1,6 +1,7 @@
 //backend\controllers\departmentController.js
 const User = require("../models/User");
 const Department = require("../models/Department");
+const Staff = require("../models/Staff");
 // ✅ Get departments by workspace
 exports.getDepartments = async (req, res) => {
   try {
@@ -204,43 +205,30 @@ exports.getMyDepartment = async (req, res) => {
 // ===============================
 // ✅ Department Head Approve Staff
 // ===============================
-exports.approveStaffRequest = async (req, res) => {
+exports.sendStaffJoinRequest = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const user = await User.findById(req.user.id);
 
-    const head = await User.findById(req.userId);
-    if (!head || head.role !== "department_head") {
-      return res.status(403).json({ message: "Not authorized" });
+    if (user.staffId) {
+      return res.status(400).json({ message: "Already staff or pending" });
     }
 
-    const user = await User.findById(userId);
-    if (!user || !user.departmentId) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // ✅ Ensure same department
-    const department = await Department.findOne({
-      _id: user.departmentId,
-      deptHeadId: head._id,
+    // 1️⃣ Create staff document with pending status
+    const newStaff = await Staff.create({
+      userId: user._id,
+      departmentId: req.body.departmentId,
     });
 
-    if (!department) {
-      return res.status(403).json({
-        message: "You can only approve your department staff",
-      });
-    }
-
-    user.requestStatus = "approved";
-    user.role = "staff";
+    // 2️⃣ Update user request status only
+    user.requestStatus = "pending";
     await user.save();
 
-    res.json({ message: "Staff approved successfully" });
+    res.json({ message: "Staff request sent successfully" });
+
   } catch (error) {
-    console.error("approveStaffRequest error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: error.message });
   }
 };
-
 
 // ===============================
 // ✅ Department Head Reject Staff
@@ -249,25 +237,84 @@ exports.rejectStaffRequest = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const head = await User.findById(req.userId);
-    if (!head || head.role !== "department_head") {
-      return res.status(403).json({ message: "Not authorized" });
-    }
-
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
 
-    user.departmentId = null;
+    // Delete staff document
+    await Staff.findOneAndDelete({ userId });
+
+    // Reset user
     user.requestStatus = null;
+    user.staffId = null;
     user.role = "user";
 
     await user.save();
 
     res.json({ message: "Staff request rejected" });
+
   } catch (error) {
-    console.error("rejectStaffRequest error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+exports.getDepartmentStaffOverview = async (req, res) => {
+  try {
+
+    const departmentHeadId = req.user.id;
+
+    const department = await Department.findOne({
+      deptHeadId: departmentHeadId
+    });
+
+    if (!department) {
+      return res.status(404).json({
+        message: "Department not found"
+      });
+    }
+
+    const staffList = await Staff.find({
+      departmentId: department._id
+    })
+    .populate("userId") // ✅ Full user data
+    .lean();
+
+    res.json(staffList);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};
+exports.getStaffOverview = async (req, res) => {
+  try {
+
+    const staffList = await Staff.find({})
+      .populate("userId", "name email age profileImage createdAt")
+      .populate("departmentId", "department")
+      .lean();
+
+    const formatted = staffList.map(staff => ({
+      _id: staff._id,
+      status: staff.status,
+
+      name: staff.userId?.name || "—",
+      email: staff.userId?.email || "—",
+      age: staff.userId?.age || "—",
+
+      joinedDate: staff.userId?.createdAt || null,
+
+      profileImage: staff.userId?.profileImage || null,
+
+      department: staff.departmentId?.department || "—",
+
+      // Full user data future feature ke liye
+      userFullData: staff.userId || null
+    }));
+
+    res.json(formatted);
+
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
