@@ -1,19 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axiosInstance from "../api/axiosInstance";
 
 export default function useStaffOverview() {
-
   const [staff, setStaff] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-
-    axiosInstance.get("/departments/staff-overview")
-      .then(res => setStaff(res.data || []))
-      .catch(err => console.error(err.response?.data || err.message))
-      .finally(() => setLoading(false));
-
+  const fetchStaff = useCallback(async () => {
+    try {
+      const res = await axiosInstance.get("/departments/staff-overview");
+      setStaff(res.data || []);
+    } catch (error) {
+      console.error(error);
+    }
   }, []);
 
-  return { staff, loading };
+  useEffect(() => {
+    fetchStaff();
+  }, [fetchStaff]);
+
+  return {
+    staff,
+    refetch: fetchStaff   // ⭐ THIS IS THE FIX
+  };
 }

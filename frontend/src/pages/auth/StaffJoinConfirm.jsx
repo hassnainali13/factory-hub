@@ -9,14 +9,13 @@ export default function StaffJoinConfirm() {
   const department = location.state?.department;
 
   const [loading, setLoading] = useState(false);
-const [step, setStep] = useState("confirm");
+  const [step, setStep] = useState("confirm");
+
   if (!department) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
         <div className="bg-white p-8 rounded-3xl shadow-xl text-center">
-          <h2 className="text-red-500 font-bold text-xl">
-            Invalid Access
-          </h2>
+          <h2 className="text-red-500 font-bold text-xl">Invalid Access</h2>
 
           <button
             onClick={() => navigate("/join-workspace")}
@@ -42,11 +41,12 @@ const [step, setStep] = useState("confirm");
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       setStep("success");
 
+      // Auto redirect after success
       setTimeout(() => {
         navigate("/login");
       }, 2000);
@@ -59,16 +59,11 @@ const [step, setStep] = useState("confirm");
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-blue-50 px-4">
-
       <div className="bg-white/70 backdrop-blur-xl border border-white/40 p-10 rounded-3xl shadow-2xl max-w-md w-full text-center">
-
-      
-        {/* ⭐ CONFIRM STATE */}
+        {/* CONFIRM STATE */}
         {step === "confirm" && (
           <>
-            <h2 className="text-xl font-bold text-gray-800">
-              Confirm Request
-            </h2>
+            <h2 className="text-xl font-bold text-gray-800">Confirm Request</h2>
 
             <p className="text-gray-500 mt-3 text-sm">
               Are you sure you want to send staff request?
@@ -76,8 +71,8 @@ const [step, setStep] = useState("confirm");
 
             <div className="flex gap-4 mt-8">
               <button
-                onClick={() => setStep("idle")}
-                className="flex-1 py-3 rounded-xl border border-gray-300 hover:bg-gray-50"
+                onClick={() => navigate("/join-workspace", { replace: true })}
+                className="flex-1 py-3 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
               >
                 Cancel
               </button>
@@ -85,7 +80,7 @@ const [step, setStep] = useState("confirm");
               <button
                 onClick={handleConfirm}
                 disabled={loading}
-                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white"
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:opacity-95 transition"
               >
                 {loading ? "Sending..." : "Confirm"}
               </button>
@@ -93,10 +88,9 @@ const [step, setStep] = useState("confirm");
           </>
         )}
 
-        {/* ⭐ SUCCESS STATE */}
+        {/* SUCCESS STATE */}
         {step === "success" && (
           <div className="flex flex-col items-center animate-fadeIn">
-
             <div className="relative flex justify-center">
               <div className="absolute w-28 h-28 bg-green-400 rounded-full blur-3xl opacity-40 animate-pulse"></div>
 
@@ -126,7 +120,6 @@ const [step, setStep] = useState("confirm");
             </p>
           </div>
         )}
-
       </div>
     </div>
   );

@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import StatusPill from "../../../components/StatusPill";
 import { Eye } from "lucide-react";
-
 const DepartmentStaffTable = ({
   title = "Department Staff",
   employees = [],
@@ -10,15 +9,15 @@ const DepartmentStaffTable = ({
   onReject,
   onView,
   initialLimit = 5,
+  showMoreEnabled = true, // ⭐ NEW
 }) => {
   const [showAll, setShowAll] = useState(false);
 
-  // ⭐ SAFE ARRAY (IMPORTANT FIX)
   const safeEmployees = Array.isArray(employees) ? employees : [];
 
   const displayedEmployees = showAll
-    ? safeEmployees
-    : safeEmployees.slice(0, initialLimit);
+    ? [...safeEmployees].reverse()
+    : [...safeEmployees].reverse().slice(0, initialLimit);
 
   return (
     <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -68,11 +67,11 @@ const DepartmentStaffTable = ({
                     className="hover:bg-slate-50 transition"
                   >
                     <td className="py-4 px-4 text-sm font-medium text-slate-900">
-                      {emp.userId?.name || "—"}{" "}
+                      {emp.userId?.name || "—"}
                     </td>
 
                     <td className="py-4 px-4 text-sm text-slate-600">
-                      {emp.userId?.age || "—"}{" "}
+                      {emp.userId?.age || "—"}
                     </td>
 
                     <td className="py-4 px-4 text-sm text-slate-600">
@@ -121,7 +120,8 @@ const DepartmentStaffTable = ({
         </table>
       </div>
 
-      {safeEmployees.length > initialLimit && (
+      {/* ⭐ Show More Button Control */}
+      {showMoreEnabled && safeEmployees.length > initialLimit && (
         <div className="mt-4 text-center">
           <button
             onClick={() => setShowAll((prev) => !prev)}
@@ -134,4 +134,5 @@ const DepartmentStaffTable = ({
     </section>
   );
 };
+
 export default DepartmentStaffTable;

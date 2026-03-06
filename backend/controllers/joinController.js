@@ -218,6 +218,7 @@ exports.sendDepartmentHeadRequest = async (req, res) => {
 
 exports.dashboardStatus = async (req, res) => {
   try {
+
     const user = await User.findById(req.userId).populate({
       path: "departmentId",
       select: "department status workspaceId deptHeadId",
@@ -226,6 +227,7 @@ exports.dashboardStatus = async (req, res) => {
         select: "name logo",
       },
     });
+
     if (!user) {
       return res.status(404).json({
         type: "error",
@@ -233,14 +235,49 @@ exports.dashboardStatus = async (req, res) => {
       });
     }
 
-    // ❗ No department joined yet
+    /*
+    =====================================
+    STAFF FLOW SUPPORT ⭐
+    =====================================
+    */
+
+    if (user.staffId) {
+
+      const staff = await Staff.findById(user.staffId)
+        .populate({
+          path: "departmentId",
+          populate: {
+            path: "workspaceId",
+            select: "name logo"
+          }
+        });
+
+      if (staff) {
+
+        return res.json({
+          type: staff.status === "pending"
+            ? "pending"
+            : "assigned",
+
+          department: staff.departmentId || null,
+          workspace: staff.departmentId?.workspaceId || null
+        });
+
+      }
+    }
+
+    /*
+    =====================================
+    DEPARTMENT FLOW (OLD SYSTEM)
+    =====================================
+    */
+
     if (!user.departmentId) {
       return res.json({ type: "noDepartment" });
     }
 
     const departmentData = user.departmentId;
 
-    // ✅ Pending Request
     if (user.requestStatus === "pending") {
       return res.json({
         type: "pending",
@@ -249,7 +286,6 @@ exports.dashboardStatus = async (req, res) => {
       });
     }
 
-    // ✅ Approved Request
     if (user.requestStatus === "approved") {
       return res.json({
         type: "assigned",
@@ -258,10 +294,10 @@ exports.dashboardStatus = async (req, res) => {
       });
     }
 
-    // ❗ Rejected or Independent
     return res.json({
       type: "independent",
     });
+
   } catch (err) {
     console.error("dashboardStatus error:", err);
 

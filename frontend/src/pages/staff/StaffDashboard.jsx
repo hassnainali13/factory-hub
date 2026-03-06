@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import useDropdown from "../../hooks/useDropdown";
 import SidebarItem from "../../components/SidebarItem";
 import KpiCard from "../../components/KpiCard";
 import { useNavigate } from "react-router-dom";
+import axiosInstance from "../../api/axiosInstance";
 
 import AttendanceSummaryCard from "../../components/AttendanceSummaryCard";
 import CustomLineChart from "../../components/LineChart";
@@ -26,68 +27,122 @@ export default function DepartmentHeadDashboard() {
   const { open, toggle, ref } = useDropdown();
   const navigate = useNavigate();
 
+  /* ========================
+     STATES
+  ======================== */
+
+  const [loading, setLoading] = useState(true);
+
+  const [profile, setProfile] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [attendanceData, setAttendanceData] = useState([]);
+
+  const [tasks, setTasks] = useState([]);
   const [activePage, setActivePage] = useState("dashboard");
 
-  /* =======================
-     DUMMY USER (PROFILE)
-  ======================= */
-  const user = {
-    name: "John Smith",
-    email: "john.smith@factoryhub.com",
+  /* ========================
+     FETCH API DATA
+  ======================== */
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+  const fetchDashboard = async () => {
+    try {
+      setLoading(true);
+
+      /* Profile fetch */
+      const profileRes = await axiosInstance.get("/users/me");
+      setProfile(profileRes.data);
+
+      /* Dashboard status fetch ⭐ MAIN API */
+      const statusRes = await axiosInstance.get("/join/dashboard-status");
+
+      const response = statusRes.data;
+
+      if (!response) return;
+
+      setDashboardData({
+        department: response.department ?? null,
+        workspace: response.workspace ?? null,
+        type: response.type ?? "none",
+      });
+
+      /* Dummy attendance fallback */
+      setAttendanceData([
+        { month: "Jan", attendance: 85 },
+        { month: "Feb", attendance: 90 },
+        { month: "Mar", attendance: 92 },
+        { month: "Apr", attendance: 88 },
+        { month: "May", attendance: 94 },
+      ]);
+
+      const dummyMyTasks = [
+        {
+          id: "t1",
+          title: "Complete monthly production report",
+          date: "Mar 5, 2026",
+          status: "In Progress",
+          priority: "High",
+        },
+        {
+          id: "t2",
+          title: "Review safety compliance checklist",
+          date: "Mar 3, 2026",
+          status: "Pending",
+          priority: "Urgent",
+        },
+        {
+          id: "t3",
+          title: "Team performance evaluation",
+          date: "Mar 8, 2026",
+          status: "Not Started",
+          priority: "Medium",
+        },
+        {
+          id: "t4",
+          title: "Update equipment maintenance log",
+          date: "Mar 4, 2026",
+          status: "In Progress",
+          priority: "Low",
+        },
+        {
+          id: "t5",
+          title: "Prepare weekly status presentation",
+          date: "Mar 6, 2026",
+          status: "Completed",
+          priority: "Medium",
+        },
+      ];
+
+      setTasks(dummyMyTasks);
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  /* =======================
-     DUMMY WORKSPACE/DEPT
-  ======================= */
-  const departmentData = {
-    department: "HR Department",
-    workspaceId: {
-      name: "FactoryHub Workspace",
-      logo: "", // empty -> fallback image
-    },
-    pendingApprovals: 4,
-    activeTasks: 12,
-    attendanceRate: 92,
+  /* ========================
+     SAFE ACCESSORS
+  ======================== */
+
+  const workspace = dashboardData?.workspace || null;
+  const department = dashboardData?.department || null;
+
+  const user = profile || {
+    name: "User",
+    email: "",
   };
 
-  /* =======================
-     DUMMY EMPLOYEES
-  ======================= */
-  const displayEmployees = [
-    { _id: "emp1", name: "Ahmed Khan", age: 28, joinedDate: "2022-03-15", status: "active" },
-    { _id: "emp2", name: "Sara Ali", age: 26, joinedDate: "2023-01-12", status: "active" },
-    { _id: "emp3", name: "Hassan Raza", age: 31, joinedDate: "2021-10-05", status: "pending" },
-  ];
+  /* ========================
+     KPI CARDS
+  ======================== */
 
-  /* =======================
-     DUMMY ATTENDANCE CHART
-  ======================= */
-  const displayAttendance = [
-    { month: "Jan", attendance: 85 },
-    { month: "Feb", attendance: 90 },
-    { month: "Mar", attendance: 92 },
-    { month: "Apr", attendance: 88 },
-    { month: "May", attendance: 94 },
-  ];
-
-  /* =======================
-     DUMMY TASKS (MY TASKS)
-  ======================= */
-  const dummyMyTasks = [
-    { id: "t1", title: "Complete monthly production report", date: "Mar 5, 2026", status: "In Progress", priority: "High" },
-    { id: "t2", title: "Review safety compliance checklist", date: "Mar 3, 2026", status: "Pending", priority: "Urgent" },
-    { id: "t3", title: "Team performance evaluation", date: "Mar 8, 2026", status: "Not Started", priority: "Medium" },
-    { id: "t4", title: "Update equipment maintenance log", date: "Mar 4, 2026", status: "In Progress", priority: "Low" },
-    { id: "t5", title: "Prepare weekly status presentation", date: "Mar 6, 2026", status: "Completed", priority: "Medium" },
-  ];
-
-  /* =======================
-     KPI CARDS (DUMMY)
-  ======================= */
   const kpiCards = [
     {
       title: "Total Employees",
-      value: displayEmployees.length,
+      value: department?.employeesLimit || 0,
       delta: "+ Updated",
       icon: Users,
       accent: "text-blue-600",
@@ -95,7 +150,7 @@ export default function DepartmentHeadDashboard() {
     },
     {
       title: "Pending Approvals",
-      value: departmentData.pendingApprovals || 0,
+      value: department?.headsRequestedBy?.length || 0,
       delta: "Requires action",
       icon: CheckSquare,
       accent: "text-orange-700",
@@ -103,7 +158,7 @@ export default function DepartmentHeadDashboard() {
     },
     {
       title: "Active Tasks",
-      value: departmentData.activeTasks || 0,
+      value: 0,
       delta: "Current",
       icon: ClipboardList,
       accent: "text-emerald-600",
@@ -111,13 +166,34 @@ export default function DepartmentHeadDashboard() {
     },
     {
       title: "Attendance Rate",
-      value: `${departmentData.attendanceRate || 0}%`,
+      value: "0%",
       delta: "This month",
       icon: TrendingUp,
       bg: "bg-violet-50",
       accent: "text-violet-600",
     },
   ];
+
+  /* ========================
+     LOADING UI
+  ======================== */
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-20 h-20 bg-purple-200 blur-2xl rounded-full animate-pulse"></div>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin relative"></div>
+        </div>
+
+        <p className="mt-6 text-lg font-semibold text-gray-800">
+          Loading Dashboard
+        </p>
+
+        <p className="text-xs text-gray-400 mt-1">Please wait...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -130,8 +206,8 @@ export default function DepartmentHeadDashboard() {
                 <div className="h-10 w-10 overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
                   <img
                     src={
-                      departmentData.workspaceId?.logo
-                        ? departmentData.workspaceId.logo
+                      workspace?.logo
+                        ? `${import.meta.env.VITE_API_URL}/${workspace.logo}`
                         : "/default-workspace.png"
                     }
                     alt="Workspace Logo"
@@ -141,9 +217,12 @@ export default function DepartmentHeadDashboard() {
 
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
-                    {departmentData.workspaceId?.name}
+                    {workspace?.name || "Workspace"}
                   </p>
-                  <p className="text-xs text-slate-500">{departmentData.department}</p>
+
+                  <p className="text-xs text-slate-500">
+                    {department?.department || "Department"}
+                  </p>
                 </div>
               </div>
 
@@ -200,8 +279,9 @@ export default function DepartmentHeadDashboard() {
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                Staff, Dashboard
+                Staff Dashboard
               </h1>
+
               <p className="mt-1 text-sm text-slate-500">
                 Welcome back, {user.name}
               </p>
@@ -212,18 +292,20 @@ export default function DepartmentHeadDashboard() {
                 <Bell className="h-4 w-4 text-slate-700" />
               </button>
 
-              {/* Profile Dropdown (DUMMY) */}
               <div ref={ref} className="relative ml-2">
                 <button
                   onClick={toggle}
                   className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50 transition"
                 >
                   <div className="grid h-8 w-8 place-items-center rounded-full bg-violet-600 text-xs font-semibold text-white">
-                    {user.name.charAt(0)}
+                    {user.name?.charAt(0)}
                   </div>
 
                   <div className="hidden sm:block text-left">
-                    <p className="text-sm font-medium text-slate-900">{user.name}</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {user.name}
+                    </p>
+
                     <p className="text-[10px] text-slate-500">{user.email}</p>
                   </div>
                 </button>
@@ -236,7 +318,7 @@ export default function DepartmentHeadDashboard() {
 
                     <button
                       onClick={() => {
-                        // dummy logout
+                        localStorage.removeItem("token");
                         navigate("/login");
                       }}
                       className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
@@ -249,7 +331,7 @@ export default function DepartmentHeadDashboard() {
             </div>
           </div>
 
-          {/* ================= Dashboard Page ================= */}
+          {/* Dashboard Page */}
           {activePage === "dashboard" && (
             <>
               <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -265,8 +347,8 @@ export default function DepartmentHeadDashboard() {
                   </h2>
 
                   <CustomLineChart
-                    data={displayAttendance}
-                    lines={[{ dataKey: "attendance", color: "#6366f1" }]}
+                    data={attendanceData}
+                    lines={[{ dataKey: "attendance" }]}
                   />
                 </div>
 
@@ -283,25 +365,14 @@ export default function DepartmentHeadDashboard() {
               <div className="mt-6">
                 <MyTasksCard
                   title="My Tasks"
-                  activeCount={5}
-                  tasks={dummyMyTasks}
+                  activeCount={tasks.length}
+                  tasks={tasks}
                   onTaskClick={(t) => console.log("Open task:", t)}
                 />
               </div>
             </>
           )}
 
-          {/* ================= My Tasks Page ================= */}
-          {activePage === "my_tasks" && (
-            <MyTasksCard
-              title="My Tasks"
-              activeCount={5}
-              tasks={dummyMyTasks}
-              onTaskClick={(t) => console.log("Open task:", t)}
-            />
-          )}
-
-          {/* ================= Salary Page ================= */}
           {activePage === "salary" && (
             <SalaryInfoCard
               amount="$5,450"

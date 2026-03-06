@@ -1,4 +1,3 @@
-
 // backend/routes/departmentRoutes.js
 
 const express = require("express");
@@ -16,6 +15,8 @@ const {
   getMyDepartment,
   getDepartmentStaffOverview,
   getStaffOverview,
+  approveStaffRequest,
+  rejectStaffRequest,
 } = require("../controllers/departmentController");
 
 // ✅ GET departments (workspaceId required)
@@ -25,7 +26,7 @@ router.get("/", authenticate, getDepartments);
 router.post(
   "/create",
   authenticate,
-allowRoles("general_manager", "industry_head"),
+  allowRoles("general_manager", "industry_head"),
   createDepartment,
 );
 
@@ -33,7 +34,7 @@ allowRoles("general_manager", "industry_head"),
 router.patch(
   "/approve/:id",
   authenticate,
-allowRoles("general_manager", "industry_head"),
+  allowRoles("general_manager", "industry_head"),
   approveDepartment,
 );
 
@@ -41,7 +42,7 @@ allowRoles("general_manager", "industry_head"),
 router.patch(
   "/reject/:id",
   authenticate,
-allowRoles("general_manager", "industry_head"),
+  allowRoles("general_manager", "industry_head"),
   rejectDepartment,
 );
 // backend/routes/departmentRoutes.js
@@ -49,8 +50,8 @@ allowRoles("general_manager", "industry_head"),
 router.patch(
   "/approve-head/:userId",
   authenticate,
-allowRoles("general_manager", "industry_head"),
-  approveHeadRequest
+  allowRoles("general_manager", "industry_head"),
+  approveHeadRequest,
 );
 
 router.get("/my-department", authenticate, getMyDepartment);
@@ -58,12 +59,21 @@ router.get(
   "/staff-overview",
   authenticate,
   allowRoles("department_head"),
-  getDepartmentStaffOverview
+  getDepartmentStaffOverview,
 );
-router.get(
-  "/staff-overview",
+router.get("/staff-overview", authenticate, getStaffOverview);
+router.patch(
+  "/staff/:staffId/approve",
   authenticate,
-  getStaffOverview
+  allowRoles("department_head"),
+  approveStaffRequest,
+);
+
+router.patch(
+  "/staff/:staffId/reject",
+  authenticate,
+  allowRoles("department_head"),
+  rejectStaffRequest,
 );
 
 module.exports = router;

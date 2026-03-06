@@ -1,3 +1,4 @@
+//frontend\src\pages\department\DepartmentHeadDashboard.jsx
 import React, { useEffect, useState } from "react";
 import useDropdown from "../../hooks/useDropdown";
 import SidebarItem from "../../components/SidebarItem";
@@ -35,11 +36,10 @@ export default function DepartmentHeadDashboard() {
   const [activePage, setActivePage] = useState("dashboard");
 
   const user = JSON.parse(localStorage.getItem("user"));
-const { staff = [] } = useStaffOverview();
-const { staff: staffRequests = [] } = useStaffOverview();
-useEffect(() => {
-  console.log("Staff Requests Data:", staffRequests);
-}, [staffRequests]);
+  const { staff: staffRequests = [], refetch } = useStaffOverview();
+  useEffect(() => {
+    console.log("Staff Requests Data:", staffRequests);
+  }, [staffRequests]);
   const dummyDepartment = {
     department: "HR Department",
     workspaceId: {
@@ -50,72 +50,6 @@ useEffect(() => {
     activeTasks: 12,
     attendanceRate: 92,
   };
-
-  const dummyEmployees = [
-    {
-      _id: "emp1",
-      name: "Ahmed Khan",
-      age: 28,
-      joinedDate: "2022-03-15",
-      status: "active",
-    },
-    {
-      _id: "emp2",
-      name: "Sara Ali",
-      age: 32,
-      joinedDate: "2021-11-08",
-      status: "active",
-    },
-    {
-      _id: "emp3",
-      name: "Bilal Ahmed",
-      age: 26,
-      joinedDate: "2023-01-20",
-      status: "pending",
-    },
-    {
-      _id: "emp2",
-      name: "Sara Ali",
-      age: 32,
-      joinedDate: "2021-11-08",
-      status: "active",
-    },
-    {
-      _id: "emp3",
-      name: "Bilal Ahmed",
-      age: 26,
-      joinedDate: "2023-01-20",
-      status: "pending",
-    },
-    {
-      _id: "emp2",
-      name: "Sara Ali",
-      age: 32,
-      joinedDate: "2021-11-08",
-      status: "active",
-    },
-    {
-      _id: "emp3",
-      name: "Bilal Ahmed",
-      age: 26,
-      joinedDate: "2023-01-20",
-      status: "pending",
-    },
-    {
-      _id: "emp2",
-      name: "Sara Ali",
-      age: 32,
-      joinedDate: "2021-11-08",
-      status: "active",
-    },
-    {
-      _id: "emp3",
-      name: "Bilal Ahmed",
-      age: 26,
-      joinedDate: "2023-01-20",
-      status: "pending",
-    },
-  ];
 
   const dummyAttendanceData = [
     { month: "Jan", attendance: 85 },
@@ -170,8 +104,10 @@ useEffect(() => {
 
   const departmentData = department || dummyDepartment;
 
-  const displayEmployees = employees.length ? employees : dummyEmployees;
-  const displayAttendance = attendanceData.length
+const displayEmployees = Array.isArray(staffRequests)
+  ? staffRequests
+  : [];
+    const displayAttendance = attendanceData.length
     ? attendanceData
     : dummyAttendanceData;
 
@@ -216,20 +152,21 @@ useEffect(() => {
 
   const handleApprove = async (id) => {
     try {
-      await axiosInstance.patch(`/employees/${id}/approve`);
+      await axiosInstance.patch(`/departments/staff/${id}/approve`);
+      await refetch(); // 👈 THIS IS THE REAL FIX
     } catch (err) {
-      console.error(err);
+      console.error("Approve error:", err.response?.data || err.message);
     }
   };
 
   const handleReject = async (id) => {
     try {
-      await axiosInstance.patch(`/employees/${id}/reject`);
+      await axiosInstance.patch(`/departments/staff/${id}/reject`);
+      await refetch(); // 👈 THIS IS THE REAL FIX
     } catch (err) {
-      console.error(err);
+      console.error("Reject error:", err.response?.data || err.message);
     }
   };
-
   const handleView = (emp) => {
     console.log("View employee:", emp);
   };
@@ -433,6 +370,8 @@ useEffect(() => {
                 onApprove={handleApprove}
                 onReject={handleReject}
                 onView={handleView}
+                initialLimit={5}
+                showMoreEnabled={false} // ⭐ No show more button
               />
             </>
           )}
@@ -443,16 +382,20 @@ useEffect(() => {
           {activePage === "employees" && (
             <DepartmentStaffTable
               title="Active Employees"
-              employees={activeEmployees}
-              onApprove={handleApprove}
-              onReject={handleReject}
+              employees={staffRequests.filter(
+                (emp) => emp.status?.toLowerCase() === "active",
+              )}
               onView={handleView}
+              initialLimit={10}
+              showMoreEnabled={true}
             />
           )}
           {activePage === "approvals" && (
             <DepartmentStaffTable
               title="Pending Approvals"
-              employees={pendingEmployees}
+              employees={staffRequests.filter(
+                (emp) => emp.status?.toLowerCase() === "pending",
+              )}
               onApprove={handleApprove}
               onReject={handleReject}
               onView={handleView}

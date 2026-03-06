@@ -106,7 +106,6 @@ exports.rejectDepartment = async (req, res) => {
   }
 };
 
-
 // ✅ Approve Department Head Request (NEW - does not break old system)
 exports.approveHeadRequest = async (req, res) => {
   try {
@@ -114,11 +113,12 @@ exports.approveHeadRequest = async (req, res) => {
 
     // 1️⃣ Find user
     const user = await User.findById(userId);
-    if (!user)
-      return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     if (!user.departmentId)
-      return res.status(400).json({ message: "User has no department request" });
+      return res
+        .status(400)
+        .json({ message: "User has no department request" });
 
     const deptId = user.departmentId;
 
@@ -134,7 +134,7 @@ exports.approveHeadRequest = async (req, res) => {
         deptHeadId: user._id,
         status: "active",
       },
-      { new: true }
+      { new: true },
     );
 
     if (!department)
@@ -153,7 +153,7 @@ exports.approveHeadRequest = async (req, res) => {
           requestStatus: null,
           role: "user",
         },
-      }
+      },
     );
 
     console.log("Reset Users Count:", resetResult.modifiedCount);
@@ -195,7 +195,6 @@ exports.getMyDepartment = async (req, res) => {
     res.json({
       department,
     });
-
   } catch (error) {
     console.error("getMyDepartment error:", error);
     res.status(500).json({ message: "Server Error" });
@@ -224,76 +223,114 @@ exports.sendStaffJoinRequest = async (req, res) => {
     await user.save();
 
     res.json({ message: "Staff request sent successfully" });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ===============================
-// ✅ Department Head Reject Staff
-// ===============================
+// ✅ Approve Staff Request
+exports.approveStaffRequest = async (req, res) => {
+  try {
+    const { staffId } = req.params;
+
+    const staff = await Staff.findById(staffId);
+
+    if (!staff) {
+      return res.status(404).json({ message: "Staff request not found" });
+    }
+
+    staff.status = "active";
+    await staff.save();
+
+    if (staff.userId) {
+      await User.findByIdAndUpdate(staff.userId, {
+        role: "staff",
+        requestStatus: "approved",
+        staffId: staff._id, // ✅ ADD STAFF ID HERE
+      });
+    }
+
+    res.json({ message: "Staff approved successfully" });
+  } catch (error) {
+    console.error("approveStaffRequest error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ❌ Reject Staff Request
 exports.rejectStaffRequest = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { staffId } = req.params;
 
-    const user = await User.findById(userId);
+    const staff = await Staff.findById(staffId);
 
-    // Delete staff document
-    await Staff.findOneAndDelete({ userId });
+    if (!staff) {
+      return res.status(404).json({
+        message: "Staff request not found",
+      });
+    }
 
-    // Reset user
-    user.requestStatus = null;
-    user.staffId = null;
-    user.role = "user";
+    const userId = staff.userId;
 
-    await user.save();
+    // ✅ Delete staff request
+    await Staff.findByIdAndDelete(staffId);
 
-    res.json({ message: "Staff request rejected" });
+    // ✅ Reset user fields
+    if (userId) {
+      await User.findByIdAndUpdate(userId, {
+        staffId: null, // ⭐ IMPORTANT
+        requestStatus: null,
+        role: "user",
+      });
+    }
 
+    res.json({
+      message: "Staff request rejected & removed",
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("rejectStaffRequest error:", error);
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
+
 exports.getDepartmentStaffOverview = async (req, res) => {
   try {
-
     const departmentHeadId = req.user.id;
 
     const department = await Department.findOne({
-      deptHeadId: departmentHeadId
+      deptHeadId: departmentHeadId,
     });
 
     if (!department) {
       return res.status(404).json({
-        message: "Department not found"
+        message: "Department not found",
       });
     }
 
     const staffList = await Staff.find({
-      departmentId: department._id
+      departmentId: department._id,
     })
-    .populate("userId") // ✅ Full user data
-    .lean();
+      .populate("userId") // ✅ Full user data
+      .lean();
 
     res.json(staffList);
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
   }
 };
 exports.getStaffOverview = async (req, res) => {
   try {
-
     const staffList = await Staff.find({})
       .populate("userId", "name email age profileImage createdAt")
       .populate("departmentId", "department")
       .lean();
 
-    const formatted = staffList.map(staff => ({
+    const formatted = staffList.map((staff) => ({
       _id: staff._id,
       status: staff.status,
 
@@ -308,11 +345,10 @@ exports.getStaffOverview = async (req, res) => {
       department: staff.departmentId?.department || "—",
 
       // Full user data future feature ke liye
-      userFullData: staff.userId || null
+      userFullData: staff.userId || null,
     }));
 
     res.json(formatted);
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });

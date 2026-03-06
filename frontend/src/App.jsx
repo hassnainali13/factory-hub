@@ -1,87 +1,98 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import SuperAdminDashboard from "./pages/superadmin/SuperAdminDashboard";
-import WorkspaceManagerDashboard from "./pages/workspace/WorkspaceManagerDashboard";
+
+/* Auth Pages */
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
+import SignupSuccess from "./pages/auth/SignupSuccess";
+
+/* Workspace Flow */
 import WorkspaceOptions from "./pages/auth/WorkspaceOptions";
 import CreateWorkspace from "./pages/auth/CreateWorkspace";
 import ProcessingPage from "./pages/auth/workspaceProcessingPage";
-import SignupSuccess from "./pages/auth/SignupSuccess";
-import DepartmentHeadDashboard from "./pages/department/DepartmentHeadDashboard";
 import JoinWorkspace from "./pages/auth/JoinWorkspace";
 import DepartmentProcessPage from "./pages/auth/DepartmentProcessPage";
+// import JoinWorkspaceCodeInput from "./pages/auth/JoinWorkspaceCodeInput";
+/* Requests Flow */
 import GMRequests from "./pages/workspace/components/GMRequests";
 import DepartmentHeadRequestsListWrapper from "./pages/workspace/components/DepartmentHeadRequestsList";
-import StaffDashboard from "./pages/staff/StaffDashboard";
-//frontend\src\pages\workspace\components\DepartmentHeadRequests.jsx
+import DepartmentHeadRequestPage from "./pages/auth/DepartmentHeadRequestPage";
 import StaffJoinConfirm from "./pages/auth/StaffJoinConfirm";
 import StaffProcessingPage from "./pages/auth/StaffProcessingPage";
 
-
-
-
-// ✅ NEW PAGE IMPORT
-import DepartmentHeadRequestPage from "./pages/auth/DepartmentHeadRequestPage";
+/* Dashboards */
+import SuperAdminDashboard from "./pages/superadmin/SuperAdminDashboard";
+import WorkspaceManagerDashboard from "./pages/workspace/WorkspaceManagerDashboard";
+import DepartmentHeadDashboard from "./pages/department/DepartmentHeadDashboard";
+import StaffDashboard from "./pages/staff/StaffDashboard";
 
 export default function App() {
   return (
     <Routes>
-      {/* Auth Routes */}
+      {/* ================= AUTH ROUTES ================= */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/signup-success" element={<SignupSuccess />} />
+
+      {/* Workspace Entry */}
       <Route path="/workspace-options" element={<WorkspaceOptions />} />
       <Route path="/workspace/create" element={<CreateWorkspace />} />
       <Route path="/workspace/processing/:id" element={<ProcessingPage />} />
-      <Route path="/signup-success" element={<SignupSuccess />} />
 
+      {/* Join Workspace Flow */}
       <Route path="/join-workspace" element={<JoinWorkspace />} />
 
-      {/* ✅ NEW: Disabled department head requests */}
+      {/* <Route
+        path="/join-workspace/code-input"
+        element={<JoinWorkspaceCodeInput />}
+      /> */}
+      {/* Request Pages */}
       <Route
         path="/department-head-requests-list"
         element={<DepartmentHeadRequestsListWrapper />}
       />
 
-      {/* ✅ Pending approval page */}
       <Route
         path="/workspace/department-processing"
         element={<DepartmentProcessPage />}
       />
-      {/* ✅ NEW: Staff pending approval page */}
-      <Route
-        path="/staff/staff-processing"
-        element={<StaffProcessingPage />}
-      />
 
-      {/* ✅ NEW: Department Head Request Page */}
+      <Route path="/staff/staff-processing" element={<StaffProcessingPage />} />
+
       <Route
         path="/department-head-request"
         element={<DepartmentHeadRequestPage />}
       />
 
-      {/* ✅ NEW: GM Requests */}
       <Route path="/workspace/requests" element={<GMRequests />} />
 
-      {/* Dashboards */}
+      <Route path="/staff-join-confirm" element={<StaffJoinConfirm />} />
+
+      {/* ================= DASHBOARDS ================= */}
+
       <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
+
       <Route
         path="/workspace/dashboard"
         element={<WorkspaceManagerDashboard />}
       />
-      <Route path="/staff/dashboard" element={<StaffDashboard />} />
+
       <Route
         path="/department/dashboard"
         element={<DepartmentHeadDashboard />}
       />
-      <Route
-        path="/staff-join-confirm"
-        element={<StaffJoinConfirm />}
-      />
 
+      <Route path="/staff/dashboard" element={<StaffDashboard />} />
 
-      {/* Default route */}
+      {/* ================= DEFAULT ================= */}
+
       <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="*" element={<div>404 | Page Not Found</div>} />
+
+      <Route
+        path="*"
+        element={
+          <div className="p-10 text-center text-xl">404 | Page Not Found</div>
+        }
+      />
     </Routes>
   );
 }
