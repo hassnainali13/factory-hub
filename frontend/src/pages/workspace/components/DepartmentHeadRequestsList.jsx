@@ -44,54 +44,52 @@ const DepartmentHeadRequestsList = ({
 
   // ✅ Approve Request
   const handleApprove = async (userId) => {
-  setLoadingId(userId);
+    setLoadingId(userId);
 
-  try {
-    await axiosInstance.patch(`/departments/approve-head/${userId}`);
+    try {
+      await axiosInstance.patch(`/departments/approve-head/${userId}`);
 
-    // ✅ Refresh departments for dashboard sync
-    if (workspaceId && setDepartments) {
-      const res = await axiosInstance.get(
-        `/departments?workspaceId=${workspaceId}`
-      );
-      setDepartments(res.data);
+      // ✅ Refresh departments for dashboard sync
+      if (workspaceId && setDepartments) {
+        const res = await axiosInstance.get(
+          `/departments?workspaceId=${workspaceId}`,
+        );
+        setDepartments(res.data);
+      }
+
+      // ✅ Refetch pending users (because backend reset others)
+      const res = await axiosInstance.get("/users/pending");
+
+      const filtered = Array.isArray(res.data)
+        ? res.data.filter(
+            (u) =>
+              u.requestStatus === "pending" &&
+              String(u.departmentId?._id || u.departmentId) ===
+                String(department._id),
+          )
+        : [];
+
+      setPendingRequests(filtered);
+
+      setSuccess(true);
+
+      setTimeout(() => {
+        setSuccess(false);
+        onClose?.();
+      }, 2000);
+    } catch (err) {
+      console.error("Error approving request:", err);
+    } finally {
+      setLoadingId(null);
     }
-
-    // ✅ Refetch pending users (because backend reset others)
-    const res = await axiosInstance.get("/users/pending");
-
-    const filtered = Array.isArray(res.data)
-      ? res.data.filter(
-          (u) =>
-            u.requestStatus === "pending" &&
-            String(u.departmentId?._id || u.departmentId) ===
-              String(department._id)
-        )
-      : [];
-
-    setPendingRequests(filtered);
-
-    setSuccess(true);
-
-    setTimeout(() => {
-      setSuccess(false);
-      onClose?.();
-    }, 2000);
-  } catch (err) {
-    console.error("Error approving request:", err);
-  } finally {
-    setLoadingId(null);
-  }
-};
+  };
 
   // ✅ Reject Request
   const handleReject = async (userId) => {
     try {
       setLoadingId(userId);
 
-      await axiosInstance.patch(`/departments/reject/${userId}`);
-
-      // Remove rejected user from modal instantly
+      await axiosInstance.patch(`/departments/requests/${userId}/reject`); // Remove rejected user from modal instantly
       setPendingRequests((prev) => prev.filter((u) => u._id !== userId));
     } catch (err) {
       console.error("Error rejecting request:", err);

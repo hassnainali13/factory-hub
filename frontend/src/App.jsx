@@ -1,3 +1,4 @@
+//frontend\src\App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 
 /* Auth Pages */
@@ -9,7 +10,6 @@ import SignupSuccess from "./pages/auth/SignupSuccess";
 import WorkspaceOptions from "./pages/auth/WorkspaceOptions";
 import CreateWorkspace from "./pages/auth/CreateWorkspace";
 import ProcessingPage from "./pages/auth/workspaceProcessingPage";
-import JoinWorkspace from "./pages/auth/JoinWorkspace";
 import DepartmentProcessPage from "./pages/auth/DepartmentProcessPage";
 // import JoinWorkspaceCodeInput from "./pages/auth/JoinWorkspaceCodeInput";
 /* Requests Flow */
@@ -24,6 +24,11 @@ import SuperAdminDashboard from "./pages/superadmin/SuperAdminDashboard";
 import WorkspaceManagerDashboard from "./pages/workspace/WorkspaceManagerDashboard";
 import DepartmentHeadDashboard from "./pages/department/DepartmentHeadDashboard";
 import StaffDashboard from "./pages/staff/StaffDashboard";
+
+/* joining pages*/
+import JoinWorkspace from "./pages/auth/JoinWorkspace";
+
+
 
 export default function App() {
   return (
@@ -40,11 +45,8 @@ export default function App() {
 
       {/* Join Workspace Flow */}
       <Route path="/join-workspace" element={<JoinWorkspace />} />
-
-      {/* <Route
-        path="/join-workspace/code-input"
-        element={<JoinWorkspaceCodeInput />}
-      /> */}
+    
+     
       {/* Request Pages */}
       <Route
         path="/department-head-requests-list"

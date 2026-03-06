@@ -1,3 +1,4 @@
+//frontend\src\pages\auth\DepartmentProcessPage.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../api/axiosInstance";
@@ -22,15 +23,16 @@ export default function DepartmentProcessPage() {
 
         if (!active) return;
 
-        if (data.type === "pending") {
+        const type = (data.type || "").toLowerCase();
+
+        if (type === "pending") {
           setDepartment(data.department);
           setWorkspace(data.workspace);
-        } else if (data.type === "assigned") {
+        } else if (type === "assigned") {
           navigate("/department/dashboard", { replace: true });
         } else {
           navigate("/join-workspace", { replace: true });
         }
-
       } catch (err) {
         console.error(err);
         navigate("/join-workspace", { replace: true });
@@ -57,35 +59,28 @@ export default function DepartmentProcessPage() {
     navigate("/login", { replace: true });
   };
 
- if (loading) {
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-20 h-20 bg-purple-200 blur-2xl rounded-full animate-pulse"></div>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin relative"></div>
+        </div>
 
-      <div className="relative flex items-center justify-center">
-        <div className="absolute w-20 h-20 bg-purple-200 blur-2xl rounded-full animate-pulse"></div>
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin relative"></div>
+        <p className="mt-6 text-lg font-semibold text-gray-800">
+          Loading Dashboard
+        </p>
+
+        <p className="text-xs text-gray-400 mt-1">Please wait...</p>
       </div>
-
-      <p className="mt-6 text-lg font-semibold text-gray-800">
-        Loading Dashboard
-      </p>
-
-      <p className="text-xs text-gray-400 mt-1">
-        Please wait...
-      </p>
-
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-6">
-
       <div className="w-full max-w-md bg-white border border-gray-200 shadow-xl rounded-3xl p-7 space-y-7">
-
         {/* Header */}
         <div className="flex items-center gap-4">
-
           {logoSrc ? (
             <img
               src={logoSrc}
@@ -107,7 +102,6 @@ export default function DepartmentProcessPage() {
               Department Request Under Review
             </p>
           </div>
-
         </div>
 
         {/* Status Card */}
@@ -129,7 +123,6 @@ export default function DepartmentProcessPage() {
           <ArrowLeft size={16} />
           Back to Login
         </button>
-
       </div>
     </div>
   );

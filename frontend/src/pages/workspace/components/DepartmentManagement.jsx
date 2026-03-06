@@ -1,15 +1,6 @@
 //frontend\src\pages\workspace\components\DepartmentManagement.jsx
 import React, { useState, useEffect } from "react";
 import { Plus, Users } from "lucide-react";
-import {
-  ResponsiveContainer,
-  BarChart,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Bar,
-  CartesianGrid,
-} from "recharts";
 import StatusPill from "../../../components/StatusPill";
 import AddDepartmentModal from "./AddDepartmentModal";
 import axiosInstance from "../../../api/axiosInstance";
@@ -22,7 +13,9 @@ export default function DepartmentManagement({
 }) {
   const initialLimit = 5;
   const [showAll, setShowAll] = useState(false);
-  const [departments, setLocalDepartments] = useState(Array.isArray(data) ? data : []);
+  const [departments, setLocalDepartments] = useState(
+    Array.isArray(data) ? data : [],
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // 🚀 Fetch departments only when workspaceId exists
@@ -31,8 +24,12 @@ export default function DepartmentManagement({
       if (!workspaceId) return;
 
       try {
-        const response = await axiosInstance.get(`/departments?workspaceId=${workspaceId}`);
-        const deptData = Array.isArray(response.data) ? response.data : response.data.departments;
+        const response = await axiosInstance.get(
+          `/departments?workspaceId=${workspaceId}`,
+        );
+        const deptData = Array.isArray(response.data)
+          ? response.data
+          : response.data.departments;
 
         setLocalDepartments(deptData);
         setDepartments?.(deptData);
@@ -55,11 +52,13 @@ export default function DepartmentManagement({
     setIsModalOpen(true);
   };
 
-  const displayedData = showAll ? departments : departments.slice(0, initialLimit);
+  const displayedData = showAll
+    ? departments
+    : departments.slice(0, initialLimit);
 
   const chartData = departments.map((dept) => ({
     department: dept.department,
-    employees: dept.employees,
+    employees: dept.employeesLimit,
   }));
 
   return (
@@ -67,8 +66,12 @@ export default function DepartmentManagement({
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Department Management</h2>
-          <p className="text-sm text-slate-500">Manage departments, heads and status</p>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Department Management
+          </h2>
+          <p className="text-sm text-slate-500">
+            Manage departments, heads and status
+          </p>
         </div>
 
         <button
@@ -88,8 +91,8 @@ export default function DepartmentManagement({
             dept.status === "pending"
               ? "Not Assigned Yet"
               : dept.status === "disabled"
-              ? "—"
-              : dept.head || "—";
+                ? "—"
+                : dept.head || "—";
 
           return (
             <div
@@ -99,7 +102,9 @@ export default function DepartmentManagement({
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">{dept.department}</h3>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    {dept.department}
+                  </h3>
                   <p className="text-sm text-slate-500 mt-1">
                     {dept.role || "department_head"} —{" "}
                     <span
@@ -118,7 +123,7 @@ export default function DepartmentManagement({
 
               <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
                 <Users className="h-4 w-4 text-slate-400" />
-                {dept.employees} Staff Limit
+                {dept.employeesLimit} Staff Limit{" "}
               </div>
             </div>
           );
@@ -148,13 +153,16 @@ export default function DepartmentManagement({
           const payload = {
             department: formData.departmentName,
             head: formData.hodRole,
-            employees: Number(formData.employeesLimit),
+            employeesLimit: Number(formData.employeesLimit), // ✅ correct
             status: "disabled",
             workspaceId,
           };
 
           try {
-            const response = await axiosInstance.post("/departments/create", payload);
+            const response = await axiosInstance.post(
+              "/departments/create",
+              payload,
+            );
             const newDept = response.data;
 
             setLocalDepartments((prev) => [newDept, ...prev]);

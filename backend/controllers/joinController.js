@@ -218,7 +218,6 @@ exports.sendDepartmentHeadRequest = async (req, res) => {
 
 exports.dashboardStatus = async (req, res) => {
   try {
-
     const user = await User.findById(req.userId).populate({
       path: "departmentId",
       select: "department status workspaceId deptHeadId",
@@ -242,27 +241,21 @@ exports.dashboardStatus = async (req, res) => {
     */
 
     if (user.staffId) {
-
-      const staff = await Staff.findById(user.staffId)
-        .populate({
-          path: "departmentId",
-          populate: {
-            path: "workspaceId",
-            select: "name logo"
-          }
-        });
+      const staff = await Staff.findById(user.staffId).populate({
+        path: "departmentId",
+        populate: {
+          path: "workspaceId",
+          select: "name logo",
+        },
+      });
 
       if (staff) {
-
         return res.json({
-          type: staff.status === "pending"
-            ? "pending"
-            : "assigned",
+          type: staff.status === "pending" ? "pending" : "assigned",
 
           department: staff.departmentId || null,
-          workspace: staff.departmentId?.workspaceId || null
+          workspace: staff.departmentId?.workspaceId || null,
         });
-
       }
     }
 
@@ -297,7 +290,6 @@ exports.dashboardStatus = async (req, res) => {
     return res.json({
       type: "independent",
     });
-
   } catch (err) {
     console.error("dashboardStatus error:", err);
 
@@ -461,12 +453,11 @@ exports.getPendingRequests = async (req, res) => {
 // ===============================
 exports.sendStaffJoinRequest = async (req, res) => {
   try {
-
     const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({
-        message: "Unauthorized user"
+        message: "Unauthorized user",
       });
     }
 
@@ -474,48 +465,49 @@ exports.sendStaffJoinRequest = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({
-        message: "User not found"
+        message: "User not found",
       });
     }
 
-    const existing = await Staff.findOne({ userId });
-
-    if (existing) {
+    // ⭐ Already request check
+    if (user.staffId) {
       return res.status(400).json({
-        message: "Request already exists"
+        message: "Request already exists",
       });
     }
 
     const staff = await Staff.create({
       userId,
       departmentId: req.body.departmentId,
-      status: "pending"
+      status: "pending",
     });
 
-    user.requestStatus = "pending";
+    // ⭐ Correct update
+    user.staffId = staff._id;
+    user.role = "staff";
+    user.staffstatus = "pending";
+
     await user.save();
 
     res.json({
-      message: "Staff request sent successfully"
+      message: "Staff request sent successfully",
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
   }
 };
 exports.getStaffStatus = async (req, res) => {
   try {
-    const staff = await Staff.findOne({ userId: req.userId })
-      .populate({
-        path: "departmentId",
-        populate: {
-          path: "workspaceId",
-          select: "name logo"
-        }
-      });
+    const staff = await Staff.findOne({ userId: req.userId }).populate({
+      path: "departmentId",
+      populate: {
+        path: "workspaceId",
+        select: "name logo",
+      },
+    });
 
     if (!staff) {
       return res.json({ type: "none" });
@@ -525,7 +517,7 @@ exports.getStaffStatus = async (req, res) => {
       return res.json({
         type: "pending",
         department: staff.departmentId,
-        workspace: staff.departmentId?.workspaceId || null
+        workspace: staff.departmentId?.workspaceId || null,
       });
     }
 
@@ -534,7 +526,6 @@ exports.getStaffStatus = async (req, res) => {
     }
 
     return res.json({ type: "none" });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ type: "error" });

@@ -40,6 +40,7 @@ export default function DepartmentHeadDashboard() {
   useEffect(() => {
     console.log("Staff Requests Data:", staffRequests);
   }, [staffRequests]);
+  
   const dummyDepartment = {
     department: "HR Department",
     workspaceId: {
@@ -366,6 +367,7 @@ const displayEmployees = Array.isArray(staffRequests)
               </section>
 
               <DepartmentStaffTable
+              title=" Staff Overview Table"
                 employees={staffRequests}
                 onApprove={handleApprove}
                 onReject={handleReject}

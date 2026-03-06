@@ -13,7 +13,6 @@ const {
   approveStaffRequest,
   rejectStaffRequest,
   getStaffStatus,
-  
 } = require("../controllers/joinController");
 
 const authenticate = require("../middleware/authMiddleware");
@@ -64,7 +63,14 @@ router.patch(
   allowRoles("general_manager"),
   approveRequest,
 );
+// router.patch(
+//   "/reject/:userId",
+//   authenticate,
+//   allowRoles("general_manager"),
+//   rejectRequest,
+// );
 
+// GM Reject Request
 router.patch(
   "/requests/:userId/reject",
   authenticate,
@@ -95,10 +101,6 @@ router.post(
   allowRoles("user"),
   sendStaffJoinRequest,
 );
-router.get(
-  "/staff-status",
-  authenticate,
-  getStaffStatus
-);
+router.get("/staff-status", authenticate, getStaffStatus);
 
 module.exports = router;

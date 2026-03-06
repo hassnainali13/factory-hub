@@ -55,6 +55,12 @@ const userSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    staffstatus:{
+      type: String,
+      enum: ["pending", "approved", "disabled"],
+      default: null,
+      index: true,
+    },
 
     profileImage: {
       type: String,

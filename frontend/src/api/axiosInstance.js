@@ -8,13 +8,24 @@ const axiosInstance = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+// axiosInstance.interceptors.request.use((config) => {
+//   const token = localStorage.getItem("token");
+//     // console.log("SENDING TOKEN:", token); // 👈 add this
+
+//   if (token) {
+//     config.headers.Authorization = `Bearer ${token}`;
+//   }
+//   return config;
+// });
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-    // console.log("SENDING TOKEN:", token); // 👈 add this
+
+  // console.log("TOKEN FOUND:", token);
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });
 

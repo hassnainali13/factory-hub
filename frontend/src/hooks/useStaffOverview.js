@@ -19,6 +19,6 @@ export default function useStaffOverview() {
 
   return {
     staff,
-    refetch: fetchStaff   // ⭐ THIS IS THE FIX
+    refetch: fetchStaff, // ⭐ THIS IS THE FIX
   };
 }

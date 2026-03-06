@@ -256,7 +256,11 @@ exports.login = async (req, res) => {
         // ✅ Department head request info
         requestStatus: user.requestStatus || null, // "pending" | "approved" | "rejected" | null
         departmentId: user.departmentId || null,
+
+        staffstatus: user.staffstatus || null,
+        staffId: user.staffId || null,
       },
+
     });
   } catch (err) {
     console.error("Login error:", err);

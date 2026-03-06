@@ -33,31 +33,28 @@ exports.getDepartments = async (req, res) => {
 
 // ✅ Create a new department
 exports.createDepartment = async (req, res) => {
-  const { department, head, employees, status, workspaceId } = req.body;
+  const { department, head, employeesLimit, status, workspaceId } = req.body;
 
-  if (!department || !workspaceId || employees === undefined) {
+  if (!department || !workspaceId || employeesLimit === undefined) {
     return res.status(400).json({
-      message: "Department, workspaceId, and employees are required",
+      message: "Department, workspaceId, and employeesLimit are required",
     });
   }
 
   try {
     const newDept = await Department.create({
       department,
-      head, // (role string) ex: "department_head"
-      employees,
+      head,
+      employeesLimit, // ✅ correct field
       status: status || "disabled",
       workspaceId,
-
-      // ✅ new fields
       deptHeadId: null,
-      headsRequestedBy: [],
     });
 
     res.status(201).json(newDept);
   } catch (err) {
     console.error("Create department error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -219,7 +216,8 @@ exports.sendStaffJoinRequest = async (req, res) => {
     });
 
     // 2️⃣ Update user request status only
-    user.requestStatus = "pending";
+    user.role = "staff"; // Ensure role stays user until approval
+    user.staffstatus = "pending";
     await user.save();
 
     res.json({ message: "Staff request sent successfully" });
@@ -245,7 +243,7 @@ exports.approveStaffRequest = async (req, res) => {
     if (staff.userId) {
       await User.findByIdAndUpdate(staff.userId, {
         role: "staff",
-        requestStatus: "approved",
+        staffstatus: "approved",
         staffId: staff._id, // ✅ ADD STAFF ID HERE
       });
     }
@@ -266,7 +264,7 @@ exports.rejectStaffRequest = async (req, res) => {
 
     if (!staff) {
       return res.status(404).json({
-        message: "Staff request not found",
+        message: "Staff request not found"
       });
     }
 
@@ -275,22 +273,23 @@ exports.rejectStaffRequest = async (req, res) => {
     // ✅ Delete staff request
     await Staff.findByIdAndDelete(staffId);
 
-    // ✅ Reset user fields
+    // ⭐ Reset user fields properly
     if (userId) {
       await User.findByIdAndUpdate(userId, {
-        staffId: null, // ⭐ IMPORTANT
-        requestStatus: null,
-        role: "user",
+        staffId: null,
+        staffstatus: null,
+        role: "user"
       });
     }
 
     res.json({
-      message: "Staff request rejected & removed",
+      message: "Staff request rejected & removed"
     });
+
   } catch (error) {
-    console.error("rejectStaffRequest error:", error);
+    console.error(error);
     res.status(500).json({
-      message: error.message,
+      message: error.message
     });
   }
 };
@@ -330,25 +329,7 @@ exports.getStaffOverview = async (req, res) => {
       .populate("departmentId", "department")
       .lean();
 
-    const formatted = staffList.map((staff) => ({
-      _id: staff._id,
-      status: staff.status,
-
-      name: staff.userId?.name || "—",
-      email: staff.userId?.email || "—",
-      age: staff.userId?.age || "—",
-
-      joinedDate: staff.userId?.createdAt || null,
-
-      profileImage: staff.userId?.profileImage || null,
-
-      department: staff.departmentId?.department || "—",
-
-      // Full user data future feature ke liye
-      userFullData: staff.userId || null,
-    }));
-
-    res.json(formatted);
+    res.json(staffList);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });

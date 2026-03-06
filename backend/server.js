@@ -55,6 +55,8 @@ app.use("/api/superadmin", superAdminRoutes); // ✅ mount
 app.use("/api/join", joinRoutes); // ✅ mount join routes
 app.use("/api/departments", departmentRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/departments", joinRoutes);
+
 
 // Protected route to get the authenticated user's data
 app.get("/api/auth/me", authenticateToken, async (req, res) => {
