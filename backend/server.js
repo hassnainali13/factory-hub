@@ -14,9 +14,7 @@ const joinRoutes = require("./routes/joinRoutes");
 const departmentRoutes = require("./routes/departmentRoutes");
 const userRoutes = require("./routes/userRoutes");
 
-
 const app = express();
-
 // Middleware setup
 app.use(cors()); // Enable CORS for cross-origin requests
 app.use(express.json()); // Parse incoming JSON requests
@@ -57,7 +55,6 @@ app.use("/api/departments", departmentRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/departments", joinRoutes);
 
-
 // Protected route to get the authenticated user's data
 app.get("/api/auth/me", authenticateToken, async (req, res) => {
   try {
@@ -80,5 +77,3 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
 app.listen(process.env.PORT, () => {
   console.log(`Server is running on port ${process.env.PORT}`);
 });
-
- 
