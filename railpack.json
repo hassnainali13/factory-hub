@@ -1,5 +1,6 @@
 {
   "language": "Node",
   "build": "cd backend && npm install",
-  "start": "cd backend && npm run start"
+  "start": "cd backend && npm run start",
+  "port": 3000
 }
