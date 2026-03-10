@@ -1,6 +1,6 @@
 #!/bin/bash
 # Backend start karna
-echo "Backend start ho raha hai..."
+echo "Starting backend..."
 cd backend
 npm install
 npm start
