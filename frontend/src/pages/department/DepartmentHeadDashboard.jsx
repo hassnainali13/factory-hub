@@ -1,14 +1,19 @@
-//frontend\src\pages\department\DepartmentHeadDashboard.jsx
+// frontend\src\pages\department\DepartmentHeadDashboard.jsx
 import React, { useEffect, useState } from "react";
+import { useNavigate, Outlet } from "react-router-dom";
 import useDropdown from "../../hooks/useDropdown";
+import useUserProfile from "../../hooks/useUserProfile";
+import useAuthActions from "../../hooks/useAuthActions";
+import useStaffOverview from "../../hooks/useStaffOverview";
+import axiosInstance from "../../api/axiosInstance";
+
 import SidebarItem from "../../components/SidebarItem";
 import KpiCard from "../../components/KpiCard";
 import DepartmentStaffTable from "./components/DepartmentStaffTable";
-import { useNavigate } from "react-router-dom";
-import axiosInstance from "../../api/axiosInstance";
+import ProfileView from "../../components/ProfileView";
 import CustomBarChart from "../../components/BarChart";
 import CustomLineChart from "../../components/LineChart";
-import useStaffOverview from "../../hooks/useStaffOverview";
+
 import {
   Bell,
   Search,
@@ -24,34 +29,41 @@ import {
 } from "lucide-react";
 
 export default function DepartmentHeadDashboard() {
-  const { open, toggle, ref } = useDropdown();
+  const { userName, userEmail, role, userInitial, user } = useUserProfile();
+  const { logout, loading } = useAuthActions();
+  const { staff: staffRequests = [], refetch } = useStaffOverview();
+  const { open, toggle, ref: dropdownRef } = useDropdown();
   const navigate = useNavigate();
 
+  const [showProfile, setShowProfile] = useState(false);
   const [department, setDepartment] = useState(null);
-  const [attendanceData, setAttendanceData] = useState([]);
-  const [taskData, setTaskData] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
-
   const [activePage, setActivePage] = useState("dashboard");
 
-  const user = JSON.parse(localStorage.getItem("user"));
-  const { staff: staffRequests = [], refetch } = useStaffOverview();
+  // Fetch department data
   useEffect(() => {
-    console.log("Staff Requests Data:", staffRequests);
-  }, [staffRequests]);
-  
+    const fetchDepartment = async () => {
+      try {
+        const res = await axiosInstance.get("/departments/my-department");
+        setDepartment(res.data.department || null);
+      } catch (err) {
+        console.error("Error fetching department:", err?.message);
+      }
+    };
+    fetchDepartment();
+  }, []);
+
+  // Dummy fallback data
   const dummyDepartment = {
     department: "HR Department",
-    workspaceId: {
-      name: "FactoryHub Workspace",
-      logo: "",
-    },
+    workspaceId: { name: "FactoryHub Workspace", logo: "" },
     pendingApprovals: 4,
     activeTasks: 12,
     attendanceRate: 92,
   };
 
+  const departmentData = department || dummyDepartment;
+
+  const displayEmployees = Array.isArray(staffRequests) ? staffRequests : [];
   const dummyAttendanceData = [
     { month: "Jan", attendance: 85 },
     { month: "Feb", attendance: 90 },
@@ -59,7 +71,6 @@ export default function DepartmentHeadDashboard() {
     { month: "Apr", attendance: 88 },
     { month: "May", attendance: 94 },
   ];
-
   const dummyTaskData = [
     { month: "Jan", completed: 20 },
     { month: "Feb", completed: 35 },
@@ -68,53 +79,8 @@ export default function DepartmentHeadDashboard() {
     { month: "May", completed: 60 },
   ];
 
-  /* Fetch Department */
-
-  useEffect(() => {
-    const fetchDepartment = async () => {
-      try {
-        const res = await axiosInstance.get("/departments/my-department");
-
-        setDepartment(res.data.department || null);
-      } catch (error) {
-        console.error("Error fetching department:", error?.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDepartment();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <div className="relative flex items-center justify-center">
-          <div className="absolute w-20 h-20 bg-purple-200 blur-2xl rounded-full animate-pulse"></div>
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin relative"></div>
-        </div>
-
-        <p className="mt-6 text-lg font-semibold text-gray-800">
-          Loading Dashboard
-        </p>
-
-        <p className="text-xs text-gray-400 mt-1">Please wait...</p>
-      </div>
-    );
-  }
-
-  const departmentData = department || dummyDepartment;
-
-const displayEmployees = Array.isArray(staffRequests)
-  ? staffRequests
-  : [];
-    const displayAttendance = attendanceData.length
-    ? attendanceData
-    : dummyAttendanceData;
-
-  const displayTasks = taskData.length ? taskData : dummyTaskData;
-
-  /* KPI Cards */
+  const displayAttendance = dummyAttendanceData;
+  const displayTasks = dummyTaskData;
 
   const kpiCards = [
     {
@@ -146,15 +112,15 @@ const displayEmployees = Array.isArray(staffRequests)
       value: `${departmentData.attendanceRate || 0}%`,
       delta: "This month",
       icon: TrendingUp,
-      bg: "bg-violet-50",
       accent: "text-violet-600",
+      bg: "bg-violet-50",
     },
   ];
 
   const handleApprove = async (id) => {
     try {
       await axiosInstance.patch(`/departments/staff/${id}/approve`);
-      await refetch(); // 👈 THIS IS THE REAL FIX
+      await refetch();
     } catch (err) {
       console.error("Approve error:", err.response?.data || err.message);
     }
@@ -163,21 +129,28 @@ const displayEmployees = Array.isArray(staffRequests)
   const handleReject = async (id) => {
     try {
       await axiosInstance.patch(`/departments/staff/${id}/reject`);
-      await refetch(); // 👈 THIS IS THE REAL FIX
+      await refetch();
     } catch (err) {
       console.error("Reject error:", err.response?.data || err.message);
     }
   };
+
   const handleView = (emp) => {
     console.log("View employee:", emp);
   };
-  const activeEmployees = displayEmployees.filter(
-    (emp) => emp.status?.toLowerCase() === "active",
-  );
 
-  const pendingEmployees = displayEmployees.filter(
-    (emp) => emp.status?.toLowerCase() === "pending",
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-20 h-20 bg-purple-200 blur-2xl rounded-full animate-pulse"></div>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin relative"></div>
+        </div>
+        <p className="mt-6 text-lg font-semibold text-gray-800">Loading Dashboard</p>
+        <p className="text-xs text-gray-400 mt-1">Please wait...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -198,7 +171,6 @@ const displayEmployees = Array.isArray(staffRequests)
                     className="h-full w-full object-cover"
                   />
                 </div>
-
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
                     {departmentData.workspaceId?.name || "Workspace Name"}
@@ -216,42 +188,36 @@ const displayEmployees = Array.isArray(staffRequests)
                   active={activePage === "dashboard"}
                   onClick={() => setActivePage("dashboard")}
                 />
-
                 <SidebarItem
                   icon={Boxes}
                   label="Employees"
                   active={activePage === "employees"}
                   onClick={() => setActivePage("employees")}
                 />
-
                 <SidebarItem
                   icon={CheckSquare}
                   label="Approvals"
                   active={activePage === "approvals"}
                   onClick={() => setActivePage("approvals")}
                 />
-
                 <SidebarItem
                   icon={Shield}
                   label="Tasks"
                   active={activePage === "tasks"}
                   onClick={() => setActivePage("tasks")}
                 />
-
                 <SidebarItem
                   icon={Users}
                   label="Attendance"
                   active={activePage === "attendance"}
                   onClick={() => setActivePage("attendance")}
                 />
-
                 <SidebarItem
                   icon={FileBarChart2}
                   label="Reports"
                   active={activePage === "reports"}
                   onClick={() => setActivePage("reports")}
                 />
-
                 <SidebarItem
                   icon={Settings}
                   label="System Settings"
@@ -265,22 +231,20 @@ const displayEmployees = Array.isArray(staffRequests)
 
         {/* Main Content */}
         <main className="flex-1 min-w-0">
-          {/* Header */}
+          {/* Topbar */}
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
                 {departmentData.department || "Department Name"}, Dashboard
               </h1>
-
               <p className="mt-1 text-sm text-slate-500">
-                Welcome back, {user?.name}
+                Welcome back, {userName} — {role}
               </p>
             </div>
 
             <div className="flex items-center gap-3 ml-auto">
               <div className="relative flex-1 sm:min-w-[300px]">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
                 <input
                   className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
                   placeholder="Search employees..."
@@ -291,36 +255,40 @@ const displayEmployees = Array.isArray(staffRequests)
                 <Bell className="h-4 w-4 text-slate-700" />
               </button>
 
-              {/* Profile Dropdown */}
-              <div ref={ref} className="relative ml-2">
+              <div ref={dropdownRef} className="relative inline-block text-left">
                 <button
                   onClick={toggle}
-                  className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50 transition"
+                  className="flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 hover:bg-gray-100 transition-colors"
                 >
-                  <div className="grid h-8 w-8 place-items-center rounded-full bg-violet-600 text-xs font-semibold text-white">
-                    {user?.name?.charAt(0)}
+                  <div className="grid h-8 w-8 place-items-center rounded-full overflow-hidden">
+                    {user?.profileImage ? (
+                      <img
+                        src={user.profileImage + "?t=" + Date.now()}
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="bg-violet-600 text-xs font-semibold text-white flex items-center justify-center h-full w-full">
+                        {userInitial}
+                      </div>
+                    )}
                   </div>
-
-                  <div className="hidden sm:block text-left">
-                    <p className="text-sm font-medium text-slate-900">
-                      {user?.name}
-                    </p>
-
-                    <p className="text-[10px] text-slate-500">{user?.email}</p>
+                  <div className="hidden text-left sm:block">
+                    <p className="text-sm font-medium text-slate-900">{userName}</p>
+                    <p className="text-[10px] text-slate-500">{userEmail}</p>
                   </div>
                 </button>
 
                 {open && (
-                  <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg z-10">
-                    <button className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50">
+                  <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-lg z-10">
+                    <button
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100"
+                      onClick={() => setShowProfile(true)}
+                    >
                       Profile View
                     </button>
-
                     <button
-                      onClick={() => {
-                        localStorage.clear();
-                        navigate("/login");
-                      }}
+                      onClick={logout}
                       className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
                     >
                       Logout
@@ -345,7 +313,6 @@ const displayEmployees = Array.isArray(staffRequests)
                   <h2 className="text-base font-semibold text-slate-900">
                     Monthly Attendance
                   </h2>
-
                   <CustomLineChart
                     data={displayAttendance}
                     lines={[{ dataKey: "attendance", color: "#6366f1" }]}
@@ -356,7 +323,6 @@ const displayEmployees = Array.isArray(staffRequests)
                   <h2 className="text-base font-semibold text-slate-900">
                     Task Completion
                   </h2>
-
                   <CustomBarChart
                     data={displayTasks}
                     xKey="month"
@@ -367,42 +333,58 @@ const displayEmployees = Array.isArray(staffRequests)
               </section>
 
               <DepartmentStaffTable
-              title=" Staff Overview Table"
-                employees={staffRequests}
+                title="Staff Overview Table"
+                employees={displayEmployees}
                 onApprove={handleApprove}
                 onReject={handleReject}
                 onView={handleView}
                 initialLimit={5}
-                showMoreEnabled={false} // ⭐ No show more button
+                showMoreEnabled={false}
               />
             </>
           )}
 
-          {/* ========================= */}
-          {/* WORKSPACES PAGE */}
-          {/* ========================= */}
           {activePage === "employees" && (
             <DepartmentStaffTable
               title="Active Employees"
-              employees={staffRequests.filter(
-                (emp) => emp.status?.toLowerCase() === "active",
-              )}
+              employees={displayEmployees.filter((emp) => emp.status?.toLowerCase() === "active")}
               onView={handleView}
               initialLimit={10}
               showMoreEnabled={true}
             />
           )}
+
           {activePage === "approvals" && (
             <DepartmentStaffTable
               title="Pending Approvals"
-              employees={staffRequests.filter(
-                (emp) => emp.status?.toLowerCase() === "pending",
-              )}
+              employees={displayEmployees.filter((emp) => emp.status?.toLowerCase() === "pending")}
               onApprove={handleApprove}
               onReject={handleReject}
               onView={handleView}
             />
           )}
+
+          {/* Profile Modal */}
+          {showProfile && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-white p-6 rounded-2xl w-[400px] max-w-full">
+                <button
+                  className="mb-4 text-red-600 font-semibold"
+                  onClick={() => setShowProfile(false)}
+                >
+                  Close
+                </button>
+                <ProfileView
+                  name={user?.name}
+                  email={user?.email}
+                  profileImage={user?.profileImage}
+                  initials={userInitial}
+                />
+              </div>
+            </div>
+          )}
+
+          <Outlet />
         </main>
       </div>
     </div>

@@ -13,6 +13,8 @@ import KpiCard from "../../components/KpiCard";
 import DepartmentOverviewTable from "./components/DepartmentOverviewTable";
 import DepartmentHeadRequestsList from "./components/DepartmentHeadRequestsList";
 import DepartmentManagement from "./components/DepartmentManagement";
+import ProfileView from "../../components/ProfileView";
+import { Outlet } from "react-router-dom";
 
 import {
   Bell,
@@ -28,8 +30,6 @@ import {
   TrendingUp,
   Settings,
 } from "lucide-react";
-
-
 
 // KPI Cards data
 const kpiCards = [
@@ -110,6 +110,7 @@ export default function WorkspaceManagerDashboard() {
 
   const [departments, setDepartments] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [showProfile, setShowProfile] = useState(false);
 
   // 🔥 Fetch all departments and pending users
   const fetchDepartments = async () => {
@@ -314,8 +315,19 @@ export default function WorkspaceManagerDashboard() {
                   onClick={toggle}
                   className="flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 hover:bg-gray-100 transition-colors"
                 >
-                  <div className="grid h-8 w-8 place-items-center rounded-full bg-violet-600 text-xs font-semibold text-white">
-                    {userInitial}
+                  {/* // topbar profile button */}
+                  <div className="grid h-8 w-8 place-items-center rounded-full overflow-hidden">
+                    {user?.profileImage ? (
+                      <img
+                        src={user.profileImage + "?t=" + Date.now()} // cache bust
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="bg-violet-600 text-xs font-semibold text-white flex items-center justify-center h-full w-full">
+                        {userInitial}
+                      </div>
+                    )}
                   </div>
                   <div className="hidden text-left sm:block">
                     <p className="text-sm font-medium text-slate-900">
@@ -327,7 +339,10 @@ export default function WorkspaceManagerDashboard() {
 
                 {open && (
                   <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-lg z-10">
-                    <button className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100">
+                    <button
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100"
+                      onClick={() => setShowProfile(true)}
+                    >
                       Profile View
                     </button>
                     <button
@@ -342,9 +357,6 @@ export default function WorkspaceManagerDashboard() {
             </div>
           </div>
 
-          {/* ========================= */}
-          {/* DASHBOARD PAGE */}
-          {/* ========================= */}
           {activePage === "dashboard" && (
             <>
               <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -439,6 +451,22 @@ export default function WorkspaceManagerDashboard() {
               setDepartments={setDepartments}
             />
           )}
+
+          {showProfile && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-white p-6 rounded-2xl w-[400px]">
+                <button
+                  className="mb-4 text-red-600"
+                  onClick={() => setShowProfile(false)}
+                >
+                  Close
+                </button>
+                <ProfileView />
+              </div>
+            </div>
+          )}
+          {/* ✅ Nested route content will render here */}
+          <Outlet />
         </main>
       </div>
     </div>

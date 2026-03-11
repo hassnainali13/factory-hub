@@ -24,11 +24,10 @@ import SuperAdminDashboard from "./pages/superadmin/SuperAdminDashboard";
 import WorkspaceManagerDashboard from "./pages/workspace/WorkspaceManagerDashboard";
 import DepartmentHeadDashboard from "./pages/department/DepartmentHeadDashboard";
 import StaffDashboard from "./pages/staff/StaffDashboard";
-
+/* Profile Component */
+import ProfileView from "./components/ProfileView";
 /* joining pages*/
 import JoinWorkspace from "./pages/auth/JoinWorkspace";
-
-
 
 export default function App() {
   return (
@@ -38,6 +37,10 @@ export default function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/signup-success" element={<SignupSuccess />} />
 
+      {/*=================profile component=================*/}
+      <Route path="/profile" element={<ProfileView />} />
+
+      {/* ================= WORKSPACE & REQUESTS ROUTES ================= */}
       {/* Workspace Entry */}
       <Route path="/workspace-options" element={<WorkspaceOptions />} />
       <Route path="/workspace/create" element={<CreateWorkspace />} />
@@ -45,8 +48,7 @@ export default function App() {
 
       {/* Join Workspace Flow */}
       <Route path="/join-workspace" element={<JoinWorkspace />} />
-    
-     
+
       {/* Request Pages */}
       <Route
         path="/department-head-requests-list"
@@ -76,14 +78,17 @@ export default function App() {
       <Route
         path="/workspace/dashboard"
         element={<WorkspaceManagerDashboard />}
-      />
+      >
+        <Route path="profile" element={<ProfileView />} />
+      </Route>
 
-      <Route
-        path="/department/dashboard"
-        element={<DepartmentHeadDashboard />}
-      />
+      <Route path="/department/dashboard" element={<DepartmentHeadDashboard />}>
+        <Route path="profile" element={<ProfileView />} />
+      </Route>
 
-      <Route path="/staff/dashboard" element={<StaffDashboard />} />
+      <Route path="/staff/dashboard" element={<StaffDashboard />}>
+        <Route path="profile" element={<ProfileView />} />
+      </Route>
 
       {/* ================= DEFAULT ================= */}
 

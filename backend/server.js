@@ -19,6 +19,8 @@ const app = express();
 app.use(cors()); // Enable CORS for cross-origin requests
 app.use(express.json()); // Parse incoming JSON requests
 app.use("/uploads", express.static("uploads"));
+// Serve uploads folder
+app.use("/ProfileImage", express.static("ProfileImage"));
 
 // Connect to MongoDB
 mongoose

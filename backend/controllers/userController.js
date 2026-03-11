@@ -1,6 +1,10 @@
+// backend/controllers/userController.js
+
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
+const path = require("path");
+const fs = require("fs");
 
 // ✅ Get current user profile
 exports.getProfile = async (req, res) => {
@@ -13,7 +17,7 @@ exports.getProfile = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
   } catch (err) {
-    console.error(err);
+    console.error("Get profile error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -27,12 +31,24 @@ exports.updateProfile = async (req, res) => {
 
     if (name) user.name = name;
     if (email) user.email = email;
-    if (req.file) user.profileImage = req.file.path; // multer file
+
+    if (req.file) {
+      // Delete old image if exists
+      if (user.profileImage) {
+        let oldImagePath = user.profileImage.replace(`${req.protocol}://${req.get("host")}/`, "");
+        oldImagePath = path.join(__dirname, "..", oldImagePath);
+        if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+      }
+
+      // Convert local path to URL
+      const filePath = req.file.path.replace(/\\/g, "/"); // Windows fix
+      user.profileImage = `${req.protocol}://${req.get("host")}/${filePath}`;
+    }
 
     await user.save();
-    res.json({ message: "Profile updated", user });
+    res.json({ message: "Profile updated successfully", user });
   } catch (err) {
-    console.error(err);
+    console.error("Update profile error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -53,7 +69,7 @@ exports.changePassword = async (req, res) => {
 
     res.json({ message: "Password updated successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("Change password error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -75,7 +91,7 @@ exports.requestPasswordReset = async (req, res) => {
 
     res.json({ message: "Password reset token generated", token });
   } catch (err) {
-    console.error(err);
+    console.error("Request password reset error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -98,7 +114,7 @@ exports.resetPassword = async (req, res) => {
     await user.save();
     res.json({ message: "Password reset successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("Reset password error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -111,9 +127,6 @@ exports.getPendingUsers = async (req, res) => {
       .populate("departmentId", "department head deptHeadId");
 
     const pendingRequests = users.filter((u) => u.requestStatus === "pending");
-
-    console.log("All Users From DB:", users);
-    console.log("Pending Users:", pendingRequests);
 
     res.json(pendingRequests);
   } catch (err) {
