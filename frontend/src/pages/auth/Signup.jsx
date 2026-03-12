@@ -27,33 +27,29 @@ export default function UserSignup() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          role: "user",
-        }),
+        body: JSON.stringify({ ...form, role: "user" }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Signup failed");
-        setLoading(false);
+        setError(data.message || "Signup failed. Please check your input.");
         return;
       }
 
       setSuccess("User registered successfully!");
-      setTimeout(() => {
-        navigate("/signup-success");  // Navigate to the signup success page
-      }, 1200);
+      setTimeout(() => navigate("/signup-success"), 1200);
     } catch (err) {
-      setError("Server error, try again");
+      console.error("Signup error:", err);
+      setError("Server error, please try again later.");
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
