@@ -1,4 +1,3 @@
-// frontend\src\pages\workspace\WorkspaceManagerDashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useUserProfile from "../../hooks/useUserProfile";
@@ -15,6 +14,7 @@ import DepartmentHeadRequestsList from "./components/DepartmentHeadRequestsList"
 import DepartmentManagement from "./components/DepartmentManagement";
 import ProfileView from "../../components/ProfileView";
 import { Outlet } from "react-router-dom";
+import DepartmentDetailModal from "./components/DepartmentDetailModal"; // Updated import
 
 import {
   Bell,
@@ -161,6 +161,8 @@ export default function WorkspaceManagerDashboard() {
   };
 
   // Modal state
+  const [isDepartmentDetailModalOpen, setIsDepartmentDetailModalOpen] =
+    useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
@@ -174,6 +176,16 @@ export default function WorkspaceManagerDashboard() {
     setSelectedDepartment(null);
     // 🔥 Refresh page after tick screen closes
     fetchDepartments();
+  };
+
+  const handleOpenDepartmentDetail = (department) => {
+    setSelectedDepartment(department); // selected department set karte hain
+    setIsDepartmentDetailModalOpen(true); // Modal ko open karte hain
+  };
+
+  const handleCloseDepartmentDetail = () => {
+    setIsDepartmentDetailModalOpen(false); // Modal ko close karte hain
+    setSelectedDepartment(null); // Selected department ko clear karte hain
   };
 
   const pendingDepartments = departments.filter(
@@ -199,6 +211,7 @@ export default function WorkspaceManagerDashboard() {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto flex max-w-[1440px] gap-6 p-4 md:p-6">
@@ -396,6 +409,7 @@ export default function WorkspaceManagerDashboard() {
                 initialLimit={5}
                 disableShowMore={true}
                 onOpenRequests={handleOpenRequests}
+                onOpenDetails={handleOpenDepartmentDetail}
               />
 
               <DepartmentHeadRequestsList
@@ -409,6 +423,16 @@ export default function WorkspaceManagerDashboard() {
                 onReject={handleReject}
               />
             </>
+          )}
+
+          {/* Other active pages handling omitted for brevity */}
+
+          {/* Department Detail Modal */}
+          {isDepartmentDetailModalOpen && (
+            <DepartmentDetailModal
+              department={selectedDepartment}
+              onClose={handleCloseDepartmentDetail}
+            />
           )}
 
           {activePage === "departments" && (
@@ -464,6 +488,12 @@ export default function WorkspaceManagerDashboard() {
                 <ProfileView />
               </div>
             </div>
+          )}
+          {isDepartmentDetailModalOpen && (
+            <DepartmentDetailModal
+              departmentId={selectedDepartment?._id} // ✅ send only the id
+              onClose={handleCloseDepartmentDetail}
+            />
           )}
           {/* ✅ Nested route content will render here */}
           <Outlet />

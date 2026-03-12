@@ -1,5 +1,3 @@
-// frontend\src\pages\workspace\components\DepartmentOverviewTable.jsx
-
 import React, { useState, useEffect } from "react";
 import StatusPill from "../../../components/StatusPill";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -22,8 +20,8 @@ const DepartmentOverviewTable = ({
   const displayedDepartments = disableShowMore
     ? localDepartments.slice(0, initialLimit)
     : showAll
-      ? localDepartments
-      : localDepartments.slice(0, initialLimit);
+    ? localDepartments
+    : localDepartments.slice(0, initialLimit);
 
   return (
     <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -39,7 +37,6 @@ const DepartmentOverviewTable = ({
                 Department
               </th>
               <th className="w-1/4 pb-3 text-xs font-semibold uppercase text-slate-400">
-                {/* Status */}
                 Head Name
               </th>
               <th className="w-1/4 pb-3 text-xs font-semibold uppercase text-slate-400">
@@ -105,7 +102,7 @@ const DepartmentOverviewTable = ({
                       {/* Active -> Eye */}
                       {isActive && (
                         <button
-                          onClick={() => onOpenDetails?.(d)}
+                          onClick={() => onOpenDetails?.(d)} // Open department details modal
                           className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition inline-flex items-center justify-center"
                         >
                           <FaEye className="h-4 w-4" />

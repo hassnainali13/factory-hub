@@ -166,7 +166,55 @@ exports.approveHeadRequest = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+// ✅ Get full department details for modal
+// backend/controllers/departmentController.js
+exports.getDepartmentWithStaff = async (req, res) => {
+  try {
+    const { departmentId } = req.params;
 
+    // 1️⃣ Find department
+    const department = await Department.findById(departmentId)
+      .populate({
+        path: "workspaceId",
+        select: "workspaceName logo",
+      })
+      .populate({
+        path: "deptHeadId",
+        select: "name role",
+      })
+      .lean(); // lean() required for plain JS object
+
+    console.log(department);
+
+    if (!department) {
+      return res.status(404).json({ message: "Department not found" });
+    }
+
+    // 2️⃣ Get staff for this department
+    const staffDocs = await Staff.find({ departmentId })
+      .populate("userId", "name email role requestStatus")
+      .lean();
+
+    const staffMembers = staffDocs.map((s) => ({
+      _id: s.userId._id,
+      name: s.userId.name,
+      email: s.userId.email,
+      role: s.userId.role,
+      requestStatus: s.status === "active" ? "approved" : "pending",
+    }));
+
+    // 3️⃣ Send combined response
+  res.json({
+  ...department,
+  workspaceName: department.workspaceId?.workspaceName || "Workspace Not Assigned",
+  headName: department.deptHeadId?.name || "Not Assigned",
+  users: staffMembers,
+});
+  } catch (err) {
+    console.error("getDepartmentWithStaff error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 exports.getMyDepartment = async (req, res) => {
   try {
     const userId = req.user.id; // ⚠️ must come from auth middleware
@@ -264,7 +312,7 @@ exports.rejectStaffRequest = async (req, res) => {
 
     if (!staff) {
       return res.status(404).json({
-        message: "Staff request not found"
+        message: "Staff request not found",
       });
     }
 
@@ -278,18 +326,17 @@ exports.rejectStaffRequest = async (req, res) => {
       await User.findByIdAndUpdate(userId, {
         staffId: null,
         staffstatus: null,
-        role: "user"
+        role: "user",
       });
     }
 
     res.json({
-      message: "Staff request rejected & removed"
+      message: "Staff request rejected & removed",
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
   }
 };
