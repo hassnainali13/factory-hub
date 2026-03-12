@@ -1,40 +1,33 @@
-// src/hooks/useAuth.js
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../api/axiosInstance"; // ✅ use axiosInstance
 
-// Custom hook for authentication logic
 const useAuth = () => {
-  const [user, setUser] = useState(null); // Store user data
-  const [loading, setLoading] = useState(true); // Loading state
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserData = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          navigate("/login");
-          return;
-        }
-
-        const response = await axios.get("http://localhost:5000/api/auth/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
+        // ✅ Use axiosInstance, it automatically adds token from interceptor
+        const response = await axiosInstance.get("/auth/me");
         if (response.data.user) {
-          setUser(response.data.user); // Set user data if exists
+          setUser(response.data.user);
         } else {
           navigate("/login");
         }
       } catch (error) {
         console.error("Error fetching user data", error);
-        navigate("/login");
+        handleLogout(); // Force logout on error
       } finally {
-        setLoading(false); // Set loading state to false once data is fetched
+        setLoading(false);
       }
     };
 
@@ -42,8 +35,9 @@ const useAuth = () => {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
     navigate("/login");
   };
 
