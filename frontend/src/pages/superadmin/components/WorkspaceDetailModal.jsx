@@ -27,11 +27,12 @@ export default function WorkspaceDetailModal({
     fetchWorkspace();
   }, [workspaceId]);
 
+  // workspace logo URL
   const logoUrl = workspace?.logo
     ? workspace.logo.startsWith("http")
       ? workspace.logo
-      : `${apiBaseUrl}/${workspace.logo.replace(/\\/g, "/")}`
-    : null;
+      : `${apiBaseUrl || import.meta.env.VITE_API_URL}/${workspace.logo.replace(/\\/g, "/")}`
+    : "/default-workspace.png"; // default fallback
 
   if (!workspaceId) return null;
 
@@ -54,7 +55,7 @@ export default function WorkspaceDetailModal({
             {logoUrl ? (
               <img
                 src={logoUrl}
-                alt={workspace?.name}
+                alt={workspace?.workspaceName}
                 className="w-24 h-24 object-cover rounded-full border"
               />
             ) : (
@@ -62,7 +63,6 @@ export default function WorkspaceDetailModal({
                 N/A
               </div>
             )}
-
             <h2 className="text-xl font-semibold text-slate-900">
               {workspace?.workspaceName || "N/A"}
             </h2>

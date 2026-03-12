@@ -87,14 +87,29 @@ const monthlyGrowthData = [
 
 export default function WorkspaceManagerDashboard() {
   const { user, userName, userEmail, role, userInitial } = useUserProfile();
-  const workspaceDetails = useWorkspaceDetails(user);
+  const [workspaceDetails, setWorkspaceDetails] = useState({
+    workspaceName: "",
+    logo: "",
+  });
   const { logout, loading } = useAuthActions();
   const { open, toggle, ref: dropdownRef } = useDropdown();
   const [activePage, setActivePage] = useState("dashboard");
   const navigate = useNavigate();
 
   const [workspaceId, setWorkspaceId] = useState(null);
-
+  useEffect(() => {
+    const fetchWorkspace = async () => {
+      if (!workspaceId) return;
+      try {
+        const res = await axiosInstance.get(`/workspaces/${workspaceId}`);
+        setWorkspaceDetails(res.data || { workspaceName: "", logo: "" });
+      } catch (err) {
+        console.error("Error fetching workspace details:", err);
+        setWorkspaceDetails({ workspaceName: "", logo: "" });
+      }
+    };
+    fetchWorkspace();
+  }, [workspaceId]);
   useEffect(() => {
     if (user?.workspaceId) {
       setWorkspaceId(user.workspaceId._id || user.workspaceId);
@@ -222,15 +237,17 @@ export default function WorkspaceManagerDashboard() {
               <div className="flex items-center gap-3 px-2">
                 <div className="grid h-10 w-10 place-items-center rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
                   {workspaceDetails.logo ? (
-                    <img
-                      src={workspaceDetails.logo}
-                      alt="Workspace Logo"
-                      className="h-full w-full object-cover"
-                      onError={(e) => (e.currentTarget.style.display = "none")}
-                    />
-                  ) : (
-                    <LayoutDashboard className="h-4 w-4" />
-                  )}
+  <img
+    src={`${import.meta.env.VITE_API_URL}/${workspaceDetails.logo}`}
+    alt="Workspace Logo"
+    className="h-full w-full object-cover"
+    onError={(e) => {
+      e.currentTarget.style.display = "none"; // agar image load na ho to hide
+    }}
+  />
+) : (
+  <LayoutDashboard className="h-4 w-4" />
+)}
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">

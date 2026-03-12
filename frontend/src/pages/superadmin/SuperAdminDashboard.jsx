@@ -5,13 +5,11 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 import SidebarItem from "../../components/SidebarItem";
 import KpiCard from "../../components/KpiCard";
-import StatusPill from "../../components/StatusPill";
 import useAllWorkspaces from "../../hooks/useViewWorkspaces";
-import WorkspaceDetailModal from "./components/WorkspaceDetailModal";
+import WorkspacesOverviewTable from "./components/WorkspacesOverviewTable";
 import CustomBarChart from "../../components/BarChart";
 import CustomLineChart from "../../components/LineChart";
-import WorkspacesOverviewTable from "./components/WorkspacesOverviewTable";
-
+import WorkspaceDetailModal from "./components/WorkspaceDetailModal";
 import {
   Bell,
   Search,
@@ -24,10 +22,6 @@ import {
   ClipboardList,
   Settings,
 } from "lucide-react";
-
-
-
-
 
 const employeesPerWorkspace = [
   { name: "Oil Factory", employees: 145 },

@@ -13,9 +13,10 @@ const WorkspacesOverviewTable = ({
   openWorkspace,
   onCloseModal,
   WorkspaceDetailModal,
-  apiBaseUrl = "http://localhost:5000",
+  apiBaseUrl, // remove default here
   initialLimit = 5,
 }) => {
+  const BASE_URL = apiBaseUrl || import.meta.env.VITE_API_URL;
   const [showAll, setShowAll] = useState(false);
 
   const displayedWorkspaces = showAll
@@ -140,8 +141,8 @@ const WorkspacesOverviewTable = ({
       {openWorkspace && WorkspaceDetailModal && (
         <WorkspaceDetailModal
           workspaceId={openWorkspace}
-          apiBaseUrl={apiBaseUrl}
-          onClose={() => onCloseModal?.()}
+          apiBaseUrl={import.meta.env.VITE_API_URL}
+          onClose={onCloseModal}
         />
       )}
     </section>
