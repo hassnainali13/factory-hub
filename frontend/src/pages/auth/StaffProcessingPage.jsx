@@ -2,8 +2,9 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../api/axiosInstance";
 import { ArrowLeft, Building2 } from "lucide-react";
-
-const API_BASE = "http://localhost:5000";
+import defaultworkspace from "../../assets/default-workspace.png";
+import { buildApiUrl } from "../../config/api";
+import { getWorkspaceLogo } from "../../utils/logoHelper";
 
 export default function StaffProcessingPage() {
   const navigate = useNavigate();
@@ -25,14 +26,11 @@ export default function StaffProcessingPage() {
         if (data.type === "pending") {
           setDepartment(data.department);
           setWorkspace(data.workspace);
-        } 
-        else if (data.type === "approved") {
+        } else if (data.type === "approved") {
           navigate("/staff/dashboard", { replace: true });
-        } 
-        else {
+        } else {
           navigate("/join-workspace", { replace: true });
         }
-
       } catch (err) {
         console.error(err);
         navigate("/join-workspace", { replace: true });
@@ -42,7 +40,6 @@ export default function StaffProcessingPage() {
     };
 
     checkStaffStatus();
-
     return () => {
       active = false;
     };
@@ -50,7 +47,7 @@ export default function StaffProcessingPage() {
 
   const logoSrc = useMemo(() => {
     if (!workspace?.logo) return null;
-    return `${API_BASE}/${workspace.logo.replace(/\\/g, "/")}`;
+    return buildApiUrl(workspace.logo.replace(/\\/g, "/"));
   }, [workspace]);
 
   const handleBackToLogin = () => {
@@ -59,9 +56,6 @@ export default function StaffProcessingPage() {
     navigate("/login", { replace: true });
   };
 
-  // =====================
-  // Loading UI
-  // =====================
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white">
@@ -69,33 +63,24 @@ export default function StaffProcessingPage() {
           <div className="absolute w-20 h-20 bg-blue-200 blur-2xl rounded-full animate-pulse"></div>
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin relative"></div>
         </div>
-
         <p className="mt-6 text-lg font-semibold text-gray-800">
           Checking Staff Status
         </p>
-
-        <p className="text-xs text-gray-400 mt-1">
-          Please wait...
-        </p>
+        <p className="text-xs text-gray-400 mt-1">Please wait...</p>
       </div>
     );
   }
 
-  // =====================
-  // Main UI
-  // =====================
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-6">
       <div className="w-full max-w-md bg-white border border-gray-200 shadow-xl rounded-3xl p-7 space-y-7">
-
         {/* Header */}
         <div className="flex items-center gap-4">
           {logoSrc ? (
             <img
-              src={logoSrc}
+              src={getWorkspaceLogo(workspace.logo)}
               alt="Workspace Logo"
               className="w-16 h-16 rounded-2xl object-cover border shadow-sm"
-              onError={(e) => (e.target.src = "/default-workspace.png")}
             />
           ) : (
             <div className="w-16 h-16 rounded-2xl bg-gray-900 flex items-center justify-center text-white">
@@ -107,9 +92,7 @@ export default function StaffProcessingPage() {
             <h2 className="text-lg font-bold text-gray-900 truncate">
               {workspace?.name || "Workspace Name"}
             </h2>
-            <p className="text-xs text-gray-500">
-              Staff Request Under Review
-            </p>
+            <p className="text-xs text-gray-500">Staff Request Under Review</p>
           </div>
         </div>
 
@@ -132,7 +115,6 @@ export default function StaffProcessingPage() {
           <ArrowLeft size={16} />
           Back to Login
         </button>
-
       </div>
     </div>
   );

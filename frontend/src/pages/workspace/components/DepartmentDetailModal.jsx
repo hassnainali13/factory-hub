@@ -1,3 +1,4 @@
+//frontend\src\pages\workspace\components\DepartmentDetailModal.jsx
 import React, { useState, useEffect } from "react";
 import axios from "../../../api/axiosInstance";
 

@@ -194,8 +194,8 @@ export default function WorkspaceManagerDashboard() {
   };
 
   const handleOpenDepartmentDetail = (department) => {
-    setSelectedDepartment(department); // selected department set karte hain
-    setIsDepartmentDetailModalOpen(true); // Modal ko open karte hain
+    setSelectedDepartment(department); // keep the object for reference if needed
+    setIsDepartmentDetailModalOpen(true);
   };
 
   const handleCloseDepartmentDetail = () => {
@@ -237,17 +237,17 @@ export default function WorkspaceManagerDashboard() {
               <div className="flex items-center gap-3 px-2">
                 <div className="grid h-10 w-10 place-items-center rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
                   {workspaceDetails.logo ? (
-  <img
-    src={`${import.meta.env.VITE_API_URL}/${workspaceDetails.logo}`}
-    alt="Workspace Logo"
-    className="h-full w-full object-cover"
-    onError={(e) => {
-      e.currentTarget.style.display = "none"; // agar image load na ho to hide
-    }}
-  />
-) : (
-  <LayoutDashboard className="h-4 w-4" />
-)}
+                    <img
+                      src={`${import.meta.env.VITE_API_URL}/${workspaceDetails.logo}`}
+                      alt="Workspace Logo"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none"; // agar image load na ho to hide
+                      }}
+                    />
+                  ) : (
+                    <LayoutDashboard className="h-4 w-4" />
+                  )}
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
@@ -508,7 +508,7 @@ export default function WorkspaceManagerDashboard() {
           )}
           {isDepartmentDetailModalOpen && (
             <DepartmentDetailModal
-              departmentId={selectedDepartment?._id} // ✅ send only the id
+              departmentId={selectedDepartment?._id}
               onClose={handleCloseDepartmentDetail}
             />
           )}
