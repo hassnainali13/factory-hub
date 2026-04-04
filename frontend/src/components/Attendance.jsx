@@ -37,7 +37,7 @@ const Attendance = () => {
     const hours = now.getHours();
     const minutes = now.getMinutes();
 
-    const inWindow = hours === 18 && minutes >= 0 && minutes < 30;
+    const inWindow = hours === 19 && minutes >= 0 && minutes < 60;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
