@@ -29,9 +29,16 @@ import ProfileView from "./components/ProfileView";
 /* joining pages*/
 import JoinWorkspace from "./pages/auth/JoinWorkspace";
 
+
+/* debugging*/
+import TestIPDetect from "./components/TestIPLocation"; 
+
 export default function App() {
   return (
     <Routes>
+      {/* ================= debugging test  ================= */}
+
+      <Route path="/test-ip-location" element={<TestIPDetect />} />
       {/* ================= AUTH ROUTES ================= */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />

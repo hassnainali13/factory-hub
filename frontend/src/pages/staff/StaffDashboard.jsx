@@ -11,7 +11,7 @@ import MyTasksCard from "./components/MyTasksCard";
 import SalaryInfoCard from "./components/SalaryInfoCard";
 import axiosInstance from "../../api/axiosInstance";
 import useAuthActions from "../../hooks/useAuthActions";
-
+import Attendance from "../../components/Attendance";
 import {
   Bell,
   LayoutDashboard,
@@ -373,6 +373,11 @@ export default function StaffDashboard() {
               lastPaymentDate="Feb 28, 2026"
               nextPaymentDate="Mar 31, 2026"
             />
+          )}
+          {activePage === "attendance" && (
+            <div className="mt-6">
+              <Attendance />
+            </div>
           )}
 
           {showProfile && (
