@@ -13,6 +13,8 @@ import DepartmentStaffTable from "./components/DepartmentStaffTable";
 import ProfileView from "../../components/ProfileView";
 import CustomBarChart from "../../components/BarChart";
 import CustomLineChart from "../../components/LineChart";
+import Attendance from "../../components/Attendance";
+
 
 import {
   Bell,
@@ -363,6 +365,11 @@ export default function DepartmentHeadDashboard() {
               onView={handleView}
             />
           )}
+           {activePage === "attendance" && (
+                      <div className="mt-6">
+                        <Attendance />
+                      </div>
+                    )}
 
           {/* Profile Modal */}
           {showProfile && (

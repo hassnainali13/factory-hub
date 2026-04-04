@@ -24,21 +24,27 @@ const Attendance = () => {
 
     // Update current time every minute
     const interval = setInterval(() => {
-      setCurrentTime(new Date());
-      checkCheckInWindow(data);
+      const now = new Date();
+      setCurrentTime(now);
+      checkCheckInWindow(data, now);
     }, 60000);
 
     return () => clearInterval(interval);
   }, [data]);
 
   // Check if check-in is allowed
-  const checkCheckInWindow = (attendances) => {
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
+  const checkCheckInWindow = (attendances, now = new Date()) => {
+    // 1:00 PM - 1:30 PM window
+    const startHour = 13;
+    const startMinute = 0;
+    const endHour = 13;
+    const endMinute = 30;
 
-    const inWindow = hours === 19 && minutes >= 0 && minutes < 60;
+    const inWindow =
+      (now.getHours() > startHour || (now.getHours() === startHour && now.getMinutes() >= startMinute)) &&
+      (now.getHours() < endHour || (now.getHours() === endHour && now.getMinutes() < endMinute));
 
+    // Check if user already checked in today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -89,23 +95,10 @@ const Attendance = () => {
       {/* Check-In Button */}
       <div className="flex justify-center">
         <button
-          onClick={() => {
-            if (
-              currentTime.getHours() > 18 ||
-              (currentTime.getHours() === 18 &&
-                currentTime.getMinutes() >= 30) ||
-              !canCheckIn
-            )
-              return; // Prevent opening camera
-            setShowCamera(true);
-          }}
-          disabled={
-            !canCheckIn &&
-            (currentTime.getHours() > 18 ||
-              (currentTime.getHours() === 18 && currentTime.getMinutes() >= 30))
-          }
-          className={`bg-gradient-to-r from-green-500 to-green-700 text-white font-semibold px-6 py-3 rounded-lg shadow-lg transform transition 
-  ${canCheckIn ? "hover:scale-105 cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
+          onClick={() => canCheckIn && setShowCamera(true)}
+          disabled={!canCheckIn}
+          className={`bg-gradient-to-r from-green-500 to-green-700 text-white font-semibold px-6 py-3 rounded-lg shadow-lg transform transition
+            ${canCheckIn ? "hover:scale-105 cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
         >
           Check In
         </button>
@@ -113,10 +106,7 @@ const Attendance = () => {
 
       {/* Camera Modal */}
       {showCamera && (
-        <CheckIn
-          onCheckIn={handleCheckIn}
-          onClose={() => setShowCamera(false)}
-        />
+        <CheckIn onCheckIn={handleCheckIn} onClose={() => setShowCamera(false)} />
       )}
 
       {/* Attendance Table */}
@@ -124,43 +114,22 @@ const Attendance = () => {
         <table className="min-w-full bg-white shadow-lg rounded-xl overflow-hidden">
           <thead className="bg-gray-100">
             <tr>
-              <th className="text-left px-6 py-3 text-gray-600 font-medium">
-                Date
-              </th>
-              <th className="text-left px-6 py-3 text-gray-600 font-medium">
-                Check-In
-              </th>
-              <th className="text-left px-6 py-3 text-gray-600 font-medium">
-                Check-Out
-              </th>
-              <th className="text-left px-6 py-3 text-gray-600 font-medium">
-                Status
-              </th>
-              <th className="text-center px-6 py-3 text-gray-600 font-medium">
-                Action
-              </th>
+              <th className="text-left px-6 py-3 text-gray-600 font-medium">Date</th>
+              <th className="text-left px-6 py-3 text-gray-600 font-medium">Check-In</th>
+              <th className="text-left px-6 py-3 text-gray-600 font-medium">Check-Out</th>
+              <th className="text-left px-6 py-3 text-gray-600 font-medium">Status</th>
+              <th className="text-center px-6 py-3 text-gray-600 font-medium">Action</th>
             </tr>
           </thead>
           <tbody>
             {data.map((row) => (
-              <tr
-                key={row._id}
-                className="border-b hover:bg-gray-50 transition"
-              >
-                <td className="px-6 py-4">
-                  {new Date(row.date).toLocaleDateString()}
-                </td>
+              <tr key={row._id} className="border-b hover:bg-gray-50 transition">
+                <td className="px-6 py-4">{new Date(row.date).toLocaleDateString()}</td>
                 <td className="px-6 py-4 text-green-600 font-medium">
-                  {row.checkIn
-                    ? new Date(row.checkIn).toLocaleTimeString()
-                    : "--"}
+                  {row.checkIn ? new Date(row.checkIn).toLocaleTimeString() : "--"}
                 </td>
-                <td
-                  className={`px-6 py-4 font-medium ${row.checkOut ? "text-red-600" : "text-gray-400"}`}
-                >
-                  {row.checkOut
-                    ? new Date(row.checkOut).toLocaleTimeString()
-                    : "--"}
+                <td className={`px-6 py-4 font-medium ${row.checkOut ? "text-red-600" : "text-gray-400"}`}>
+                  {row.checkOut ? new Date(row.checkOut).toLocaleTimeString() : "--"}
                 </td>
                 <td className="px-6 py-4">
                   <span
@@ -168,8 +137,8 @@ const Attendance = () => {
                       getStatus(row) === "Working"
                         ? "bg-yellow-100 text-yellow-800"
                         : getStatus(row) === "Checked Out"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-600"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-600"
                     }`}
                   >
                     {getStatus(row)}
