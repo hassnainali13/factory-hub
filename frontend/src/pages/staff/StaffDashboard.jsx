@@ -43,6 +43,7 @@ export default function StaffDashboard() {
   const [tasks, setTasks] = useState([]);
   const [activePage, setActivePage] = useState("dashboard");
   const [showProfile, setShowProfile] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   // -------------------- Fetch Dashboard --------------------
   useEffect(() => {
@@ -182,8 +183,15 @@ export default function StaffDashboard() {
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto flex max-w-[1440px] gap-6 p-4 md:p-6">
         {/* Sidebar */}
-        <aside className="hidden w-[260px] shrink-0 md:block">
+        {/* Sidebar */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-[260px] shrink-0 bg-white border-r border-slate-200 p-4 shadow-lg transition-transform
+  md:static md:translate-x-0 md:block
+  ${showSidebar ? "translate-x-0" : "-translate-x-full"}
+`}
+        >
           <div className="sticky top-6">
+            {/* Workspace info + SidebarItems */}
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-3 px-2">
                 <div className="h-10 w-10 overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
@@ -249,6 +257,14 @@ export default function StaffDashboard() {
           </div>
         </aside>
 
+        {/* Overlay for mobile when sidebar is open */}
+        {showSidebar && (
+          <div
+            className="fixed inset-0 z-40 bg-black/30 md:hidden"
+            onClick={() => setShowSidebar(false)}
+          />
+        )}
+
         {/* Main Content */}
         <main className="flex-1 min-w-0">
           {/* Header */}
@@ -263,6 +279,14 @@ export default function StaffDashboard() {
             </div>
 
             <div className="flex items-center gap-3 ml-auto">
+              <button
+                className="md:hidden flex flex-col justify-center gap-1 p-2 rounded-md hover:bg-slate-200 transition"
+                onClick={() => setShowSidebar((prev) => !prev)}
+              >
+                <span className="block w-6 h-0.5 bg-blue-500"></span>
+                <span className="block w-6 h-0.5 bg-blue-500"></span>
+                <span className="block w-6 h-0.5 bg-blue-500"></span>
+              </button>
               <div className="relative flex-1 sm:min-w-[300px]">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input

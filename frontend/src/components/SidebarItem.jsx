@@ -1,3 +1,5 @@
+//frontend\src\components\SidebarItem.jsx
+
 import React from "react";
 
 /**

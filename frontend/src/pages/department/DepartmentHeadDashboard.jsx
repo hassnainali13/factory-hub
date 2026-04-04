@@ -15,7 +15,6 @@ import CustomBarChart from "../../components/BarChart";
 import CustomLineChart from "../../components/LineChart";
 import Attendance from "../../components/Attendance";
 
-
 import {
   Bell,
   Search,
@@ -40,6 +39,7 @@ export default function DepartmentHeadDashboard() {
   const [showProfile, setShowProfile] = useState(false);
   const [department, setDepartment] = useState(null);
   const [activePage, setActivePage] = useState("dashboard");
+const [showSidebar, setShowSidebar] = useState(false);
 
   // Fetch department data
   useEffect(() => {
@@ -148,7 +148,9 @@ export default function DepartmentHeadDashboard() {
           <div className="absolute w-20 h-20 bg-purple-200 blur-2xl rounded-full animate-pulse"></div>
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin relative"></div>
         </div>
-        <p className="mt-6 text-lg font-semibold text-gray-800">Loading Dashboard</p>
+        <p className="mt-6 text-lg font-semibold text-gray-800">
+          Loading Dashboard
+        </p>
         <p className="text-xs text-gray-400 mt-1">Please wait...</p>
       </div>
     );
@@ -158,8 +160,14 @@ export default function DepartmentHeadDashboard() {
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto flex max-w-[1440px] gap-6 p-4 md:p-6">
         {/* Sidebar */}
-        <aside className="hidden w-[260px] shrink-0 md:block">
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-[260px] shrink-0 bg-white border-r border-slate-200 p-4 shadow-lg transition-transform
+  md:static md:translate-x-0 md:block
+  ${showSidebar ? "translate-x-0" : "-translate-x-full"}
+`}
+        >
           <div className="sticky top-6">
+            {/* Workspace info + SidebarItems */}
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-3 px-2">
                 <div className="h-10 w-10 overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
@@ -230,6 +238,13 @@ export default function DepartmentHeadDashboard() {
             </div>
           </div>
         </aside>
+        {/* Overlay for mobile when sidebar is open */}
+{showSidebar && (
+  <div
+    className="fixed inset-0 z-40 bg-black/30 md:hidden"
+    onClick={() => setShowSidebar(false)}
+  />
+)}
 
         {/* Main Content */}
         <main className="flex-1 min-w-0">
@@ -245,6 +260,14 @@ export default function DepartmentHeadDashboard() {
             </div>
 
             <div className="flex items-center gap-3 ml-auto">
+              <button
+                className="md:hidden flex flex-col justify-center gap-1 p-2 rounded-md hover:bg-slate-200 transition"
+                onClick={() => setShowSidebar((prev) => !prev)}
+              >
+                <span className="block w-6 h-0.5 bg-blue-500"></span>
+                <span className="block w-6 h-0.5 bg-blue-500"></span>
+                <span className="block w-6 h-0.5 bg-blue-500"></span>
+              </button>
               <div className="relative flex-1 sm:min-w-[300px]">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
@@ -257,7 +280,10 @@ export default function DepartmentHeadDashboard() {
                 <Bell className="h-4 w-4 text-slate-700" />
               </button>
 
-              <div ref={dropdownRef} className="relative inline-block text-left">
+              <div
+                ref={dropdownRef}
+                className="relative inline-block text-left"
+              >
                 <button
                   onClick={toggle}
                   className="flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 hover:bg-gray-100 transition-colors"
@@ -276,7 +302,9 @@ export default function DepartmentHeadDashboard() {
                     )}
                   </div>
                   <div className="hidden text-left sm:block">
-                    <p className="text-sm font-medium text-slate-900">{userName}</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {userName}
+                    </p>
                     <p className="text-[10px] text-slate-500">{userEmail}</p>
                   </div>
                 </button>
@@ -349,7 +377,9 @@ export default function DepartmentHeadDashboard() {
           {activePage === "employees" && (
             <DepartmentStaffTable
               title="Active Employees"
-              employees={displayEmployees.filter((emp) => emp.status?.toLowerCase() === "active")}
+              employees={displayEmployees.filter(
+                (emp) => emp.status?.toLowerCase() === "active",
+              )}
               onView={handleView}
               initialLimit={10}
               showMoreEnabled={true}
@@ -359,17 +389,19 @@ export default function DepartmentHeadDashboard() {
           {activePage === "approvals" && (
             <DepartmentStaffTable
               title="Pending Approvals"
-              employees={displayEmployees.filter((emp) => emp.status?.toLowerCase() === "pending")}
+              employees={displayEmployees.filter(
+                (emp) => emp.status?.toLowerCase() === "pending",
+              )}
               onApprove={handleApprove}
               onReject={handleReject}
               onView={handleView}
             />
           )}
-           {activePage === "attendance" && (
-                      <div className="mt-6">
-                        <Attendance />
-                      </div>
-                    )}
+          {activePage === "attendance" && (
+            <div className="mt-6">
+              <Attendance />
+            </div>
+          )}
 
           {/* Profile Modal */}
           {showProfile && (
