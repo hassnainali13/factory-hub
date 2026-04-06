@@ -14,6 +14,7 @@ import ProfileView from "../../components/ProfileView";
 import CustomBarChart from "../../components/BarChart";
 import CustomLineChart from "../../components/LineChart";
 import Attendance from "../../components/Attendance";
+import { getWorkspaceLogo } from "../../utils/logoHelper";
 
 import {
   Bell,
@@ -177,14 +178,10 @@ export default function DepartmentHeadDashboard() {
               <div className="flex items-center gap-3 px-2">
                 <div className="h-10 w-10 overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
                   <img
-                    src={
-                      departmentData.workspaceId?.logo
-                        ? `${import.meta.env.VITE_API_URL}/${departmentData.workspaceId.logo}`
-                        : "/default-workspace.png"
-                    }
-                    alt="Workspace Logo"
-                    className="h-full w-full object-cover"
-                  />
+  src={getWorkspaceLogo(departmentData.workspaceId?.logo)}
+  alt="Workspace Logo"
+  className="h-full w-full object-cover"
+/>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">

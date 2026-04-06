@@ -396,12 +396,14 @@ export default function JoinWorkspace() {
           <div className="mt-6 border border-slate-200 rounded-2xl p-5 bg-slate-50">
             <div className="flex items-center gap-4 mb-4">
               {workspace.logo ? (
-               <img
-  src={getWorkspaceLogo(workspace.logo)}
-  alt="Workspace Logo"
-  className="w-14 h-14 rounded-full object-cover"
-  onError={(e) => { e.currentTarget.src = defaultworkspace; }}
-/>
+                <img
+                  src={workspace.logo} // ✅ Full Cloudinary URL
+                  alt="Workspace Logo"
+                  className="w-14 h-14 rounded-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = defaultworkspace; // fallback
+                  }}
+                />
               ) : (
                 <div className="w-14 h-14 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
                   W

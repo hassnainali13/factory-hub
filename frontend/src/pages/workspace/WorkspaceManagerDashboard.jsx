@@ -254,7 +254,7 @@ ${showSidebar ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
                 <div className="grid h-10 w-10 place-items-center rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
                   {workspaceDetails.logo ? (
                     <img
-                      src={`${import.meta.env.VITE_API_URL}/${workspaceDetails.logo}`}
+                      src={workspaceDetails.logo} // Cloudinary URL directly
                       alt="Workspace Logo"
                       className="h-full w-full object-cover"
                       onError={(e) => {

@@ -12,6 +12,7 @@ import SalaryInfoCard from "./components/SalaryInfoCard";
 import axiosInstance from "../../api/axiosInstance";
 import useAuthActions from "../../hooks/useAuthActions";
 import Attendance from "../../components/Attendance";
+import { getWorkspaceLogo } from "../../utils/logoHelper";
 import {
   Bell,
   LayoutDashboard,
@@ -195,15 +196,11 @@ export default function StaffDashboard() {
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-3 px-2">
                 <div className="h-10 w-10 overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
-                  {workspace?.logo ? (
-                    <img
-                      src={`${import.meta.env.VITE_API_URL}/${workspace.logo}`}
-                      alt="Workspace Logo"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="bg-gray-200 h-full w-full" />
-                  )}
+                  <img
+                    src={getWorkspaceLogo(workspace?.logo)}
+                    alt="Workspace Logo"
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">

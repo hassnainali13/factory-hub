@@ -48,7 +48,6 @@ export default function DepartmentProcessPage() {
   }, [navigate]);
 
   const logoSrc = useMemo(() => getWorkspaceLogo(workspace?.logo), [workspace]);
-
   const handleBackToLogin = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -81,7 +80,7 @@ export default function DepartmentProcessPage() {
               alt="Workspace Logo"
               className="w-16 h-16 rounded-2xl object-cover border shadow-sm"
               onError={(e) => {
-                e.currentTarget.src = defaultworkspace;
+                e.currentTarget.src = defaultworkspace; // fallback
               }}
             />
           ) : (
