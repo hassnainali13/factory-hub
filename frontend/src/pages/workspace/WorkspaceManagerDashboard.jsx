@@ -1,3 +1,4 @@
+// src/pages/workspace/WorkspaceManagerDashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useUserProfile from "../../hooks/useUserProfile";
@@ -176,6 +177,16 @@ export default function WorkspaceManagerDashboard() {
     }
   };
 
+  // 👇 Add at the top of the component along with other useState
+  const [profileImage, setProfileImage] = useState("");
+
+  useEffect(() => {
+    if (user?.profileImage) {
+      setProfileImage(user.profileImage);
+    }
+  }, [user]);
+  // 🔹 Profile Upload Handler
+
   // Modal state
   const [isDepartmentDetailModalOpen, setIsDepartmentDetailModalOpen] =
     useState(false);
@@ -234,8 +245,7 @@ export default function WorkspaceManagerDashboard() {
         <aside
           className={`fixed inset-y-0 left-0 z-50 w-[260px] shrink-0 bg-white border-r border-slate-200 p-4 shadow-lg transition-transform
   md:static md:translate-x-0 md:block
-  ${showSidebar ? "translate-x-0" : "-translate-x-full"}
-`}
+${showSidebar ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
         >
           <div className="sticky top-6">
             {/* Workspace info + SidebarItems */}
@@ -366,11 +376,13 @@ export default function WorkspaceManagerDashboard() {
                   onClick={toggle}
                   className="flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 hover:bg-gray-100 transition-colors"
                 >
-                  {/* // topbar profile button */}
+                  {/* Topbar profile button */}
                   <div className="grid h-8 w-8 place-items-center rounded-full overflow-hidden">
-                    {user?.profileImage ? (
+                    {profileImage ? (
                       <img
-                        src={user.profileImage + "?t=" + Date.now()} // cache bust
+                        src={
+                          profileImage ? profileImage + "?t=" + Date.now() : ""
+                        }
                         alt="Profile"
                         className="h-full w-full object-cover"
                       />

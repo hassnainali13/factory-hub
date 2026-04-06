@@ -39,8 +39,13 @@ export default function DepartmentHeadDashboard() {
   const [showProfile, setShowProfile] = useState(false);
   const [department, setDepartment] = useState(null);
   const [activePage, setActivePage] = useState("dashboard");
-const [showSidebar, setShowSidebar] = useState(false);
-
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [profileImage, setProfileImage] = useState("");
+  useEffect(() => {
+    if (user?.profileImage) {
+      setProfileImage(user.profileImage);
+    }
+  }, [user]);
   // Fetch department data
   useEffect(() => {
     const fetchDepartment = async () => {
@@ -239,12 +244,12 @@ const [showSidebar, setShowSidebar] = useState(false);
           </div>
         </aside>
         {/* Overlay for mobile when sidebar is open */}
-{showSidebar && (
-  <div
-    className="fixed inset-0 z-40 bg-black/30 md:hidden"
-    onClick={() => setShowSidebar(false)}
-  />
-)}
+        {showSidebar && (
+          <div
+            className="fixed inset-0 z-40 bg-black/30 md:hidden"
+            onClick={() => setShowSidebar(false)}
+          />
+        )}
 
         {/* Main Content */}
         <main className="flex-1 min-w-0">
@@ -289,17 +294,27 @@ const [showSidebar, setShowSidebar] = useState(false);
                   className="flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 hover:bg-gray-100 transition-colors"
                 >
                   <div className="grid h-8 w-8 place-items-center rounded-full overflow-hidden">
-                    {user?.profileImage ? (
-                      <img
-                        src={user.profileImage + "?t=" + Date.now()}
-                        alt="Profile"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="bg-violet-600 text-xs font-semibold text-white flex items-center justify-center h-full w-full">
-                        {userInitial}
+                    <div className="grid h-8 w-8 place-items-center rounded-full overflow-hidden">
+                      {profileImage ? (
+                        <img
+                          src={profileImage + "?t=" + Date.now()}
+                          alt="Profile"
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = "none"; // image hide
+                            e.target.nextSibling.style.display = "flex"; // fallback show
+                          }}
+                        />
+                      ) : null}
+
+                      {/* ✅ Fallback (First Letter) */}
+                      <div
+                        className="bg-violet-600 text-xs font-semibold text-white flex items-center justify-center h-full w-full"
+                        style={{ display: profileImage ? "none" : "flex" }}
+                      >
+                        {userName?.charAt(0)?.toUpperCase() || "U"}
                       </div>
-                    )}
+                    </div>
                   </div>
                   <div className="hidden text-left sm:block">
                     <p className="text-sm font-medium text-slate-900">
@@ -413,12 +428,7 @@ const [showSidebar, setShowSidebar] = useState(false);
                 >
                   Close
                 </button>
-                <ProfileView
-                  name={user?.name}
-                  email={user?.email}
-                  profileImage={user?.profileImage}
-                  initials={userInitial}
-                />
+                <ProfileView />
               </div>
             </div>
           )}

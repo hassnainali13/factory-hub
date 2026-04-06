@@ -1,3 +1,4 @@
+// src/components/ProfileView.jsx
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../api/axiosInstance";
 import ProfileImage from "./ProfileImage";
@@ -5,9 +6,12 @@ import useUserProfile from "../hooks/useUserProfile";
 import { toast } from "react-toastify";
 
 const ProfileView = () => {
-  const { user, userName, userEmail, role, updateProfileImage } = useUserProfile();
+  const { user, userName, userEmail, role, updateProfileImage } =
+    useUserProfile();
 
-  const [profileImage, setProfileImage] = useState("/images/default-profile.png");
+  const [profileImage, setProfileImage] = useState(
+    "/images/default-profile.png",
+  );
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -15,29 +19,31 @@ const ProfileView = () => {
   }, [user]);
 
   const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const formData = new FormData();
-    formData.append("profileImage", file);
+  const formData = new FormData();
+  formData.append("profile", file); // ✅ MUST MATCH BACKEND
 
-    try {
-      setUploading(true);
-      const res = await axiosInstance.put("/users/me", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+  try {
+    setUploading(true);
 
-      const newImage = res.data.user.profileImage + "?t=" + Date.now();
-      setProfileImage(newImage);
-      updateProfileImage(newImage);
-      toast.success("Profile image updated successfully!");
-    } catch (err) {
-      console.error("Error uploading image:", err);
-      toast.error("Failed to upload image");
-    } finally {
-      setUploading(false);
-    }
-  };
+    const res = await axiosInstance.put("/users/me", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    // ✅ Cloudinary URL directly use karo
+    const newImage = res.data.user.profileImage + "?t=" + Date.now();
+
+    setProfileImage(newImage);
+    updateProfileImage(newImage);
+
+  } catch (err) {
+    console.error("Error uploading image:", err);
+  } finally {
+    setUploading(false);
+  }
+};
 
   if (!user) return <div className="text-center py-10">Loading profile...</div>;
 
