@@ -16,6 +16,8 @@ import DepartmentManagement from "./components/DepartmentManagement";
 import ProfileView from "../../components/ProfileView";
 import { Outlet } from "react-router-dom";
 import DepartmentDetailModal from "./components/DepartmentDetailModal"; // Updated import
+import { getWorkspaceLogo } from "../../utils/logoHelper";
+import Attendance from "../../components/Attendance";
 
 import {
   Bell,
@@ -254,7 +256,7 @@ ${showSidebar ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
                 <div className="grid h-10 w-10 place-items-center rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
                   {workspaceDetails.logo ? (
                     <img
-                      src={workspaceDetails.logo} // Cloudinary URL directly
+                      src={getWorkspaceLogo(workspaceDetails.logo)}
                       alt="Workspace Logo"
                       className="h-full w-full object-cover"
                       onError={(e) => {
@@ -291,6 +293,12 @@ ${showSidebar ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
                   label="Approvals"
                   active={activePage === "approvals"}
                   onClick={() => setActivePage("approvals")}
+                />
+                <SidebarItem
+                  icon={Users}
+                  label="Attendance"
+                  active={activePage === "attendance"}
+                  onClick={() => setActivePage("attendance")}
                 />
                 <SidebarItem
                   icon={Shield}
@@ -525,7 +533,11 @@ ${showSidebar ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
               setDepartments={setDepartments}
             />
           )}
-
+          {activePage === "attendance" && (
+            <div className="mt-6">
+              <Attendance />
+            </div>
+          )}
           {showProfile && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
               <div className="bg-white p-6 rounded-2xl w-[400px]">

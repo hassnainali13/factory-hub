@@ -178,10 +178,10 @@ export default function DepartmentHeadDashboard() {
               <div className="flex items-center gap-3 px-2">
                 <div className="h-10 w-10 overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
                   <img
-  src={getWorkspaceLogo(departmentData.workspaceId?.logo)}
-  alt="Workspace Logo"
-  className="h-full w-full object-cover"
-/>
+                    src={getWorkspaceLogo(departmentData.workspaceId?.logo)}
+                    alt="Workspace Logo"
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
@@ -212,6 +212,7 @@ export default function DepartmentHeadDashboard() {
                   active={activePage === "approvals"}
                   onClick={() => setActivePage("approvals")}
                 />
+                
                 <SidebarItem
                   icon={Shield}
                   label="Tasks"

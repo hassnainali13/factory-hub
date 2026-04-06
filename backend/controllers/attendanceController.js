@@ -37,20 +37,21 @@ exports.checkIn = async (req, res) => {
     // 🔐 IP CHECK
     userIP = getUserIP(req);
     const devIPs = ["127.0.0.1", "::1"];
-    const isIPAllowed = OFFICE_IPS.concat(devIPs).some((ip) => userIP.includes(ip));
+    const isIPAllowed = OFFICE_IPS.concat(devIPs).some((ip) =>
+      userIP.includes(ip)
+    );
 
     // 📍 GPS CHECK
     distance = getDistance(latitude, longitude, OFFICE_LAT, OFFICE_LNG);
     const isLocationAllowed = distance <= MAX_DISTANCE_METERS;
 
-    // ❌ Deny if both fail
     if (!isIPAllowed && !isLocationAllowed) {
       return res.status(403).json({
         message: "❌ Not in office (IP + GPS failed)",
       });
     }
 
-    // 📅 Check if already checked in today
+    // 📅 Already checked-in today?
     const start = new Date();
     start.setHours(0, 0, 0, 0);
 
@@ -71,6 +72,7 @@ exports.checkIn = async (req, res) => {
     if (!matches) {
       return res.status(400).json({ message: "Invalid image format" });
     }
+
     const ext = matches[1];
     const base64Data = matches[2];
 
@@ -79,6 +81,7 @@ exports.checkIn = async (req, res) => {
 
     fs.writeFileSync(filePath, base64Data, "base64");
 
+    // ✅ Create attendance
     const attendance = new Attendance({
       user: userId,
       image: fileName,
@@ -86,6 +89,7 @@ exports.checkIn = async (req, res) => {
       longitude,
       date: new Date(),
       checkIn: new Date(),
+      status: "Working", // ✅ important
     });
 
     await attendance.save();
@@ -96,7 +100,6 @@ exports.checkIn = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 
-  // ✅ Debug logs
   console.log("User IP:", userIP);
   console.log("Latitude:", latitude, "Longitude:", longitude);
   console.log("Distance:", distance);
@@ -119,11 +122,19 @@ exports.checkOut = async (req, res) => {
       return res.status(404).json({ message: "Not found" });
     }
 
+    // ❌ If already marked absent (cron se)
+    if (attendance.status === "Absent") {
+      return res.status(400).json({
+        message: "Marked absent. Check-out not allowed",
+      });
+    }
+
     if (attendance.checkOut) {
       return res.status(400).json({ message: "Already checked out" });
     }
 
-    const hours = (new Date() - new Date(attendance.checkIn)) / (1000 * 60 * 60);
+    const hours =
+      (new Date() - new Date(attendance.checkIn)) / (1000 * 60 * 60);
 
     if (hours >= 8) {
       return res.status(400).json({
@@ -132,6 +143,8 @@ exports.checkOut = async (req, res) => {
     }
 
     attendance.checkOut = new Date();
+    attendance.status = "Present"; // ✅ important
+
     await attendance.save();
 
     res.json(attendance);
@@ -142,11 +155,13 @@ exports.checkOut = async (req, res) => {
 };
 
 // ==============================
-// 📥 GET
+// 📥 GET ATTENDANCE
 // ==============================
 exports.getAttendances = async (req, res) => {
   try {
-    const data = await Attendance.find({ user: req.user.id }).sort({ date: -1 });
+    const data = await Attendance.find({ user: req.user.id }).sort({
+      date: -1,
+    });
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -155,7 +170,7 @@ exports.getAttendances = async (req, res) => {
 };
 
 // ==============================
-// ✅ DEBUG IP & GPS
+// 🧪 DEBUG IP & GPS
 // ==============================
 exports.debugIPLocation = (req, res) => {
   try {
@@ -163,8 +178,7 @@ exports.debugIPLocation = (req, res) => {
       req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
       req.socket.remoteAddress ||
       "";
-    
-    // GPS example from query params (frontend se bhejo)
+
     const latitude = req.query.lat || 0;
     const longitude = req.query.lng || 0;
 

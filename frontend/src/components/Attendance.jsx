@@ -8,7 +8,7 @@ const Attendance = () => {
   const [canCheckIn, setCanCheckIn] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Fetch attendance data
+  // Fetch attendance data from backend
   const fetchData = async () => {
     try {
       const res = await axiosInstance.get("/attendance");
@@ -32,23 +32,23 @@ const Attendance = () => {
     return () => clearInterval(interval);
   }, [data]);
 
-  // Check if check-in is allowed
+  // Check if check-in button should be enabled
   const checkCheckInWindow = (attendances, now = new Date()) => {
-    // 1:00 PM - 1:30 PM window
     const startHour = 13;
     const startMinute = 0;
     const endHour = 13;
     const endMinute = 30;
 
     const inWindow =
-      (now.getHours() > startHour || (now.getHours() === startHour && now.getMinutes() >= startMinute)) &&
-      (now.getHours() < endHour || (now.getHours() === endHour && now.getMinutes() < endMinute));
+      (now.getHours() > startHour ||
+        (now.getHours() === startHour && now.getMinutes() >= startMinute)) &&
+      (now.getHours() < endHour ||
+        (now.getHours() === endHour && now.getMinutes() < endMinute));
 
-    // Check if user already checked in today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const checkedInToday = attendances.some((a) => new Date(a.date) >= today);
+    const checkedInToday = attendances.some((a) => new Date(a.date) >= today && a.status !== "Absent");
 
     setCanCheckIn(inWindow && !checkedInToday);
   };
@@ -83,8 +83,9 @@ const Attendance = () => {
     }
   };
 
-  // Determine status
+  // Determine status from backend
   const getStatus = (row) => {
+    if (row.status) return row.status; // Use backend status if present
     if (!row.checkIn) return "Pending";
     if (!row.checkOut) return "Working";
     return "Checked Out";
@@ -138,6 +139,8 @@ const Attendance = () => {
                         ? "bg-yellow-100 text-yellow-800"
                         : getStatus(row) === "Checked Out"
                         ? "bg-green-100 text-green-800"
+                        : getStatus(row) === "Absent"
+                        ? "bg-red-100 text-red-800"
                         : "bg-gray-100 text-gray-600"
                     }`}
                   >
@@ -145,12 +148,19 @@ const Attendance = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-center">
-                  {!row.checkOut && (
+                  {!row.checkOut && row.status !== "Absent" && (
                     <button
                       onClick={() => handleCheckOut(row._id)}
                       className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-1 px-3 rounded-lg transition"
                     >
                       Check Out
+                    </button>
+                  )}
+                  {row.status === "Absent" && (
+                    <button
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-lg transition"
+                    >
+                      Report
                     </button>
                   )}
                 </td>
