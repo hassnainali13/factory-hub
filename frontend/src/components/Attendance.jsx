@@ -1,19 +1,53 @@
 import React, { useEffect, useState } from "react";
-import CheckIn from "./CheckIn";
 import axiosInstance from "../api/axiosInstance";
+import FaceRegister from "./FaceRegister";
+import CheckIn from "./CheckIn";
 
 const Attendance = () => {
+  const [user, setUser] = useState(null);
   const [data, setData] = useState([]);
-  const [showCamera, setShowCamera] = useState(false);
-  const [canCheckIn, setCanCheckIn] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Fetch attendance data from backend
+  const [showFaceRegister, setShowFaceRegister] = useState(false);
+  const [showCheckIn, setShowCheckIn] = useState(false);
+
+  const [canCheckIn, setCanCheckIn] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // 🔥 helper: check today
+  const isToday = (date) => {
+    const d = new Date(date);
+    const t = new Date();
+
+    return (
+      d.getDate() === t.getDate() &&
+      d.getMonth() === t.getMonth() &&
+      d.getFullYear() === t.getFullYear()
+    );
+  };
+
+  // 🔥 FETCH DATA
   const fetchData = async () => {
     try {
-      const res = await axiosInstance.get("/attendance");
-      setData(res.data);
-      checkCheckInWindow(res.data);
+      const [userRes, attendanceRes] = await Promise.all([
+        axiosInstance.get("/auth/me"),
+        axiosInstance.get("/attendance"),
+      ]);
+
+      const userData = userRes.data.user;
+      const attendanceData = attendanceRes.data;
+
+      setUser(userData);
+      setData(attendanceData);
+
+      // 🔥 FACE CHECK
+      const hasFace = userData?.faceDescriptor?.length > 0;
+
+      // 🔥 DAILY CHECK-IN CHECK
+      const alreadyCheckedToday = attendanceData.some(
+        (a) => a.checkIn && isToday(a.checkIn)
+      );
+
+      setCanCheckIn(hasFace && !alreadyCheckedToday);
     } catch (err) {
       console.error(err);
     }
@@ -21,152 +55,185 @@ const Attendance = () => {
 
   useEffect(() => {
     fetchData();
+  }, []);
 
-    // Update current time every minute
-    const interval = setInterval(() => {
-      const now = new Date();
-      setCurrentTime(now);
-      checkCheckInWindow(data, now);
-    }, 60000);
+  // 🔹 Face Register
+  const handleFaceRegister = async (descriptor) => {
+    try {
+      const res = await axiosInstance.post("/attendance/register-face", {
+        descriptor,
+      });
 
-    return () => clearInterval(interval);
-  }, [data]);
+      setUser(res.data.user);
+      setShowFaceRegister(false);
 
-  // Check if check-in button should be enabled
-  const checkCheckInWindow = (attendances, now = new Date()) => {
-    const startHour = 13;
-    const startMinute = 0;
-    const endHour = 13;
-    const endMinute = 30;
-
-    const inWindow =
-      (now.getHours() > startHour ||
-        (now.getHours() === startHour && now.getMinutes() >= startMinute)) &&
-      (now.getHours() < endHour ||
-        (now.getHours() === endHour && now.getMinutes() < endMinute));
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const checkedInToday = attendances.some((a) => new Date(a.date) >= today && a.status !== "Absent");
-
-    setCanCheckIn(inWindow && !checkedInToday);
+      // enable check-in after register
+      setCanCheckIn(true);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // Handle Check-In
-  const handleCheckIn = async (image, location) => {
+  // 🔥 CHECK-IN (FAST + INSTANT TABLE UPDATE)
+  const handleCheckIn = async (image, location, descriptor) => {
     try {
+      setLoading(true);
+
       const res = await axiosInstance.post("/attendance/check-in", {
         image,
         latitude: location.lat,
         longitude: location.lng,
+        descriptor,
       });
 
-      setData([res.data, ...data]);
-      setShowCamera(false);
+      // ⚡ instant UI update
+      setData((prev) => [res.data, ...prev]);
+
+      // 🔒 lock button (daily rule)
       setCanCheckIn(false);
+
+      setShowCheckIn(false);
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || "Check-in failed");
+      console.error(err?.response?.data || err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Handle Check-Out
+  // 🔥 CHECK-OUT
   const handleCheckOut = async (id) => {
     try {
       const res = await axiosInstance.post(`/attendance/check-out/${id}`);
-      const updated = data.map((item) => (item._id === id ? res.data : item));
-      setData(updated);
+
+      setData((prev) =>
+        prev.map((item) => (item._id === id ? res.data : item))
+      );
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Check-out failed");
     }
   };
 
-  // Determine status from backend
+  // 🔥 STATUS UI
   const getStatus = (row) => {
-    if (row.status) return row.status; // Use backend status if present
-    if (!row.checkIn) return "Pending";
-    if (!row.checkOut) return "Working";
-    return "Checked Out";
+    if (row.status === "Absent")
+      return <span className="text-red-500 font-semibold">Absent</span>;
+
+    if (!row.checkIn)
+      return <span className="text-gray-500">Pending</span>;
+
+    if (!row.checkOut)
+      return <span className="text-yellow-500">Working</span>;
+
+    return <span className="text-green-600 font-semibold">Done</span>;
   };
 
   return (
     <div className="p-6 space-y-6">
-      {/* Check-In Button */}
-      <div className="flex justify-center">
-        <button
-          onClick={() => canCheckIn && setShowCamera(true)}
-          disabled={!canCheckIn}
-          className={`bg-gradient-to-r from-green-500 to-green-700 text-white font-semibold px-6 py-3 rounded-lg shadow-lg transform transition
-            ${canCheckIn ? "hover:scale-105 cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
-        >
-          Check In
-        </button>
+
+      {/* HEADER */}
+      <div className="bg-white shadow-xl rounded-2xl p-6 flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Attendance Dashboard</h2>
+
+        <div className="flex gap-3">
+
+          {/* 🔥 REGISTER FACE (ONLY IF NOT REGISTERED) */}
+          {!user?.faceDescriptor?.length && (
+            <button
+              onClick={() => setShowFaceRegister(true)}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+            >
+              Register Face
+            </button>
+          )}
+
+          {/* CHECK-IN BUTTON */}
+          <button
+            onClick={() => setShowCheckIn(true)}
+            disabled={!canCheckIn}
+            className={`px-5 py-2 rounded-lg text-white transition ${
+              canCheckIn
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
+          >
+            {loading
+              ? "Processing..."
+              : canCheckIn
+              ? "Check In"
+              : "Already Checked In"}
+          </button>
+
+        </div>
       </div>
 
-      {/* Camera Modal */}
-      {showCamera && (
-        <CheckIn onCheckIn={handleCheckIn} onClose={() => setShowCamera(false)} />
+      {/* MODALS */}
+      {showFaceRegister && (
+        <FaceRegister
+          onRegisterSuccess={handleFaceRegister}
+          onClose={() => setShowFaceRegister(false)}
+        />
       )}
 
-      {/* Attendance Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white shadow-lg rounded-xl overflow-hidden">
-          <thead className="bg-gray-100">
+      {showCheckIn && (
+        <CheckIn
+          user={user}
+          onCheckIn={handleCheckIn}
+          onClose={() => setShowCheckIn(false)}
+        />
+      )}
+
+      {/* TABLE */}
+      <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
+
+        <table className="min-w-full text-sm">
+
+          <thead className="bg-gray-100 text-gray-600">
             <tr>
-              <th className="text-left px-6 py-3 text-gray-600 font-medium">Date</th>
-              <th className="text-left px-6 py-3 text-gray-600 font-medium">Check-In</th>
-              <th className="text-left px-6 py-3 text-gray-600 font-medium">Check-Out</th>
-              <th className="text-left px-6 py-3 text-gray-600 font-medium">Status</th>
-              <th className="text-center px-6 py-3 text-gray-600 font-medium">Action</th>
+              <th className="px-6 py-3 text-left">Date</th>
+              <th className="px-6 py-3">Check-In</th>
+              <th className="px-6 py-3">Check-Out</th>
+              <th className="px-6 py-3">Status</th>
+              <th className="px-6 py-3">Action</th>
             </tr>
           </thead>
+
           <tbody>
             {data.map((row) => (
-              <tr key={row._id} className="border-b hover:bg-gray-50 transition">
-                <td className="px-6 py-4">{new Date(row.date).toLocaleDateString()}</td>
-                <td className="px-6 py-4 text-green-600 font-medium">
-                  {row.checkIn ? new Date(row.checkIn).toLocaleTimeString() : "--"}
-                </td>
-                <td className={`px-6 py-4 font-medium ${row.checkOut ? "text-red-600" : "text-gray-400"}`}>
-                  {row.checkOut ? new Date(row.checkOut).toLocaleTimeString() : "--"}
-                </td>
+              <tr key={row._id} className="border-t hover:bg-gray-50">
+
                 <td className="px-6 py-4">
-                  <span
-                    className={`px-2 py-1 rounded-full text-sm font-semibold ${
-                      getStatus(row) === "Working"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : getStatus(row) === "Checked Out"
-                        ? "bg-green-100 text-green-800"
-                        : getStatus(row) === "Absent"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {getStatus(row)}
-                  </span>
+                  {new Date(row.date).toLocaleDateString()}
                 </td>
-                <td className="px-6 py-4 text-center">
+
+                <td className="px-6 py-4 text-green-600">
+                  {row.checkIn
+                    ? new Date(row.checkIn).toLocaleTimeString()
+                    : "--"}
+                </td>
+
+                <td className="px-6 py-4 text-red-600">
+                  {row.checkOut
+                    ? new Date(row.checkOut).toLocaleTimeString()
+                    : "--"}
+                </td>
+
+                <td className="px-6 py-4">{getStatus(row)}</td>
+
+                <td className="px-6 py-4">
                   {!row.checkOut && row.status !== "Absent" && (
                     <button
                       onClick={() => handleCheckOut(row._id)}
-                      className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-1 px-3 rounded-lg transition"
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded"
                     >
                       Check Out
                     </button>
                   )}
-                  {row.status === "Absent" && (
-                    <button
-                      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-lg transition"
-                    >
-                      Report
-                    </button>
-                  )}
                 </td>
+
               </tr>
             ))}
           </tbody>
+
         </table>
       </div>
     </div>
