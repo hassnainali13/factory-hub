@@ -7,13 +7,86 @@ const Attendance = () => {
   const [user, setUser] = useState(null);
   const [data, setData] = useState([]);
 
+  const [config, setConfig] = useState(null);
+
   const [showFaceRegister, setShowFaceRegister] = useState(false);
   const [showCheckIn, setShowCheckIn] = useState(false);
 
-  const [canCheckIn, setCanCheckIn] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [now, setNow] = useState(new Date());
 
-  // 🔥 helper: check today
+  // ================= LIVE CLOCK =================
+  useEffect(() => {
+    const t = setInterval(() => {
+      setNow(new Date());
+    }, 5000);
+
+    return () => clearInterval(t);
+  }, []);
+
+  // ================= FETCH USER + ATTENDANCE =================
+  const fetchData = async () => {
+    try {
+      const [userRes, attendanceRes] = await Promise.all([
+        axiosInstance.get("/auth/me"),
+        axiosInstance.get("/attendance"),
+      ]);
+
+      setUser(userRes.data.user);
+      setData(attendanceRes.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ================= FETCH CONFIG =================
+  const fetchConfig = async () => {
+    try {
+      const res = await axiosInstance.get("/attendance-time-config");
+      setConfig(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    fetchConfig();
+  }, []);
+
+  // 🔥 auto refresh config (ADMIN changes reflect instantly)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchConfig();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
+  
+const timeToMinutes = (time) => {
+  if (!time) return 0;
+
+  // "19:00"
+  const [h, m] = time.split(":").map(Number);
+
+  return h * 60 + m;
+};
+  // ================= TIME HELPERS =================
+  const getMinutes = () => {
+    return now.getHours() * 60 + now.getMinutes();
+  };
+
+  const isCheckinAllowed = () => {
+  if (!config) return false;
+
+  const min = getMinutes();
+
+  return (
+    min >= timeToMinutes(config.checkInStart) &&
+    min <= timeToMinutes(config.checkInEnd)
+  );
+};
+
   const isToday = (date) => {
     const d = new Date(date);
     const t = new Date();
@@ -25,56 +98,20 @@ const Attendance = () => {
     );
   };
 
-  // 🔥 FETCH DATA
-  const fetchData = async () => {
-    try {
-      const [userRes, attendanceRes] = await Promise.all([
-        axiosInstance.get("/auth/me"),
-        axiosInstance.get("/attendance"),
-      ]);
+  const todayRecord = data.find((a) => isToday(a.date));
+  const alreadyCheckedToday = todayRecord?.checkIn;
 
-      const userData = userRes.data.user;
-      const attendanceData = attendanceRes.data;
+  // ================= FACE REGISTER =================
+  const handleFaceRegister = (descriptor) => {
+    setUser((prev) => ({
+      ...prev,
+      faceDescriptor: descriptor,
+    }));
 
-      setUser(userData);
-      setData(attendanceData);
-
-      // 🔥 FACE CHECK
-      const hasFace = userData?.faceDescriptor?.length > 0;
-
-      // 🔥 DAILY CHECK-IN CHECK
-      const alreadyCheckedToday = attendanceData.some(
-        (a) => a.checkIn && isToday(a.checkIn)
-      );
-
-      setCanCheckIn(hasFace && !alreadyCheckedToday);
-    } catch (err) {
-      console.error(err);
-    }
+    setShowFaceRegister(false);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  // 🔹 Face Register
-  const handleFaceRegister = async (descriptor) => {
-    try {
-      const res = await axiosInstance.post("/attendance/register-face", {
-        descriptor,
-      });
-
-      setUser(res.data.user);
-      setShowFaceRegister(false);
-
-      // enable check-in after register
-      setCanCheckIn(true);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // 🔥 CHECK-IN (FAST + INSTANT TABLE UPDATE)
+  // ================= CHECK-IN =================
   const handleCheckIn = async (image, location, descriptor) => {
     try {
       setLoading(true);
@@ -86,12 +123,7 @@ const Attendance = () => {
         descriptor,
       });
 
-      // ⚡ instant UI update
       setData((prev) => [res.data, ...prev]);
-
-      // 🔒 lock button (daily rule)
-      setCanCheckIn(false);
-
       setShowCheckIn(false);
     } catch (err) {
       console.error(err?.response?.data || err.message);
@@ -100,7 +132,7 @@ const Attendance = () => {
     }
   };
 
-  // 🔥 CHECK-OUT
+  // ================= CHECK-OUT =================
   const handleCheckOut = async (id) => {
     try {
       const res = await axiosInstance.post(`/attendance/check-out/${id}`);
@@ -113,7 +145,16 @@ const Attendance = () => {
     }
   };
 
-  // 🔥 STATUS UI
+  // ================= BUTTON LOGIC =================
+  const canRegisterFace = !user?.faceDescriptor?.length;
+
+  const canCheckIn =
+    user?.faceDescriptor?.length > 0 &&
+    !alreadyCheckedToday &&
+    isCheckinAllowed() &&
+    config;
+
+  // ================= STATUS =================
   const getStatus = (row) => {
     if (row.status === "Absent")
       return <span className="text-red-500 font-semibold">Absent</span>;
@@ -127,6 +168,7 @@ const Attendance = () => {
     return <span className="text-green-600 font-semibold">Done</span>;
   };
 
+  // ================= UI =================
   return (
     <div className="p-6 space-y-6">
 
@@ -136,17 +178,17 @@ const Attendance = () => {
 
         <div className="flex gap-3">
 
-          {/* 🔥 REGISTER FACE (ONLY IF NOT REGISTERED) */}
-          {!user?.faceDescriptor?.length && (
+          {/* FACE REGISTER */}
+          {canRegisterFace && (
             <button
               onClick={() => setShowFaceRegister(true)}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+              className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Register Face
             </button>
           )}
 
-          {/* CHECK-IN BUTTON */}
+          {/* CHECK IN */}
           <button
             onClick={() => setShowCheckIn(true)}
             disabled={!canCheckIn}
@@ -156,11 +198,15 @@ const Attendance = () => {
                 : "bg-gray-400 cursor-not-allowed"
             }`}
           >
-            {loading
-              ? "Processing..."
-              : canCheckIn
-              ? "Check In"
-              : "Already Checked In"}
+            {canRegisterFace
+              ? "Register Face First"
+              : alreadyCheckedToday
+              ? "Already Checked In"
+              : !config
+              ? "Loading..."
+              : !isCheckinAllowed()
+              ? "Check-in Closed"
+              : "Check In"}
           </button>
 
         </div>

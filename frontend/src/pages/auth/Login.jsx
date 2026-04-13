@@ -34,7 +34,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(data.user));
 
       const user = data.user;
-      console.log("LOGIN USER:", user);
+      // console.log("LOGIN USER:", user);
       // =========================================================
       // ✅ Navigation Logic (FIXED ORDER)
       // Priority → Superadmin → Staff → Department Request → Workspace Flow

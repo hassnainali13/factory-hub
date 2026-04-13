@@ -18,6 +18,7 @@ import { Outlet } from "react-router-dom";
 import DepartmentDetailModal from "./components/DepartmentDetailModal"; // Updated import
 import { getWorkspaceLogo } from "../../utils/logoHelper";
 import Attendance from "../../components/Attendance";
+import Setting from "./components/CustomSettingsForWorkspace";
 
 import {
   Bell,
@@ -533,11 +534,18 @@ ${showSidebar ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
               setDepartments={setDepartments}
             />
           )}
-          {activePage === "attendance" && (
-            <div className="mt-6">
-              <Attendance />
-            </div>
-          )}
+            {activePage === "attendance" && (
+              <div className="mt-6">
+                <Attendance />
+              </div>
+            )}
+            {activePage === "settings" && (
+              <div className="mt-6">
+                <Setting />
+              </div>
+            )}
+
+
           {showProfile && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
               <div className="bg-white p-6 rounded-2xl w-[400px]">
