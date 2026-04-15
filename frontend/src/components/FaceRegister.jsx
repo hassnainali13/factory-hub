@@ -1,23 +1,20 @@
-// frontend/src/components/FaceRegister.jsx
 import React, { useRef, useEffect, useState } from "react";
 import * as faceapi from "face-api.js";
 import axiosInstance from "../api/axiosInstance";
 
 const FaceRegister = ({ onRegisterSuccess, onClose }) => {
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
-  const closeTimeoutRef = useRef(null);
 
-  const detectionActive = useRef(false);
+  const isRunningRef = useRef(false);
 
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("Loading AI models... 🤖");
 
-  // ================= LOAD MODELS + CAMERA =================
+  // ================= INIT =================
   useEffect(() => {
     let mounted = true;
 
@@ -34,7 +31,7 @@ const FaceRegister = ({ onRegisterSuccess, onClose }) => {
         setMessage("Starting camera... 📷");
 
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 480, height: 360, facingMode: "user" },
+          video: { facingMode: "user" },
         });
 
         if (!mounted) return;
@@ -48,7 +45,7 @@ const FaceRegister = ({ onRegisterSuccess, onClose }) => {
       } catch (err) {
         console.error(err);
         setStatus("error");
-        setMessage("❌ Camera / AI model load failed");
+        setMessage("❌ Camera / AI model failed");
       }
     };
 
@@ -56,199 +53,213 @@ const FaceRegister = ({ onRegisterSuccess, onClose }) => {
 
     return () => {
       mounted = false;
-      stopEverything();
+      stopAll();
     };
   }, []);
 
   // ================= CLEANUP =================
-  const stopEverything = () => {
+  const stopAll = () => {
+    isRunningRef.current = false;
+
     streamRef.current?.getTracks().forEach((t) => t.stop());
     clearInterval(intervalRef.current);
     clearTimeout(timeoutRef.current);
-    clearTimeout(closeTimeoutRef.current);
-    detectionActive.current = false;
   };
 
   // ================= DETECTION =================
-  const startDetection = async () => {
+  const startDetection = () => {
     const video = videoRef.current;
     if (!video) return;
 
     setStatus("detecting");
-    setMessage("Align your face 👀 (max 5 sec)");
+    setMessage("Align your face 👀");
 
-    detectionActive.current = true;
+    isRunningRef.current = true;
 
-    let detected = false;
+    let successFrames = 0;
 
     timeoutRef.current = setTimeout(() => {
-      if (!detected) {
-        stopEverything();
+      if (isRunningRef.current) {
+        isRunningRef.current = false;
+        stopAll();
         setStatus("error");
-        setMessage("❌ Face not detected, try better lighting");
+        setMessage("❌ Face not detected properly");
       }
-    }, 5000);
+    }, 7000);
 
     intervalRef.current = setInterval(async () => {
-      if (!video || video.readyState !== 4 || !detectionActive.current) return;
+      if (!video || video.readyState !== 4 || !isRunningRef.current) return;
 
-      const result = await faceapi
-        .detectSingleFace(
-          video,
-          new faceapi.TinyFaceDetectorOptions({
-            inputSize: 160,
-            scoreThreshold: 0.5,
-          })
-        )
-        .withFaceLandmarks()
-        .withFaceDescriptor();
+      try {
+        const result = await faceapi
+          .detectSingleFace(
+            video,
+            new faceapi.TinyFaceDetectorOptions({
+              inputSize: 224,
+              scoreThreshold: 0.6,
+            })
+          )
+          .withFaceLandmarks()
+          .withFaceDescriptor();
 
-      if (result && !detected) {
-        detected = true;
-        detectionActive.current = false;
+        if (!result) {
+          successFrames = 0;
+          return;
+        }
 
-        clearTimeout(timeoutRef.current);
+        const { box } = result.detection;
+
+        // SIZE CHECK
+        const ratio =
+          (box.width * box.height) /
+          (video.videoWidth * video.videoHeight);
+
+        if (ratio < 0.08) {
+          setMessage("📏 Move closer");
+          successFrames = 0;
+          return;
+        }
+
+        if (ratio > 0.4) {
+          setMessage("📏 Move back");
+          successFrames = 0;
+          return;
+        }
+
+        // CENTER CHECK
+        const centerX = video.videoWidth / 2;
+        const centerY = video.videoHeight / 2;
+
+        const faceCenterX = box.x + box.width / 2;
+        const faceCenterY = box.y + box.height / 2;
+
+        if (
+          Math.abs(centerX - faceCenterX) > 80 ||
+          Math.abs(centerY - faceCenterY) > 80
+        ) {
+          setMessage("🎯 Center your face");
+          successFrames = 0;
+          return;
+        }
+
+        // STABILITY CHECK
+        successFrames++;
+
+        if (successFrames < 5) {
+          setMessage("Hold still... 🤖");
+          return;
+        }
+
+        // SUCCESS
+        isRunningRef.current = false;
+
         clearInterval(intervalRef.current);
+        clearTimeout(timeoutRef.current);
 
         setStatus("processing");
-        setMessage("Processing face data... ⚡");
+        setMessage("Processing... ⚡");
 
         await registerFace(result.descriptor);
+      } catch (err) {
+        console.error(err);
       }
     }, 200);
   };
 
-  // ================= REGISTER FACE =================
+  // ================= REGISTER =================
   const registerFace = async (descriptor) => {
     try {
       await axiosInstance.post("/attendance/register-face", {
         descriptor: Array.from(descriptor),
       });
 
-      stopEverything();
+      stopAll();
 
       setStatus("success");
       setMessage("Face Registered Successfully ✅");
 
-      // ================= AUTO CLOSE AFTER 3 SEC (NO RELOAD) =================
-      closeTimeoutRef.current = setTimeout(() => {
-        onRegisterSuccess?.(descriptor); // update parent UI
-        onClose?.(); // close modal
-      }, 3000);
-
+      setTimeout(() => {
+        onRegisterSuccess?.(descriptor);
+        onClose?.();
+      }, 2000);
     } catch (err) {
       console.error(err);
       setStatus("error");
-      setMessage(
-        err?.response?.data?.message || "❌ Server error while registering face"
-      );
+      setMessage("❌ Server error");
     }
-  };
-
-  // ================= VIDEO READY =================
-  const handleVideoPlay = () => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-
-    if (!video || !canvas) return;
-
-    faceapi.matchDimensions(canvas, {
-      width: video.videoWidth,
-      height: video.videoHeight,
-    });
   };
 
   // ================= UI =================
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-white rounded-3xl p-6 w-[360px] text-center shadow-2xl">
 
-      <div className="bg-white rounded-2xl shadow-2xl w-[420px] p-6">
+        <h2 className="text-xl font-bold mb-4">Face Register</h2>
 
-        {/* Title */}
-        <h2 className="text-center text-xl font-bold text-gray-800">
-          AI Face Registration
-        </h2>
+        {/* 🔥 CAMERA CIRCLE */}
+        <div className="relative flex justify-center items-center mt-4">
 
-        {/* Status */}
-        <div className="text-center mt-2">
-          <span className="text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-700 font-medium">
-            {status.toUpperCase()}
-          </span>
-        </div>
+          <div className="relative w-64 h-64 rounded-full overflow-hidden border-4 border-gray-300">
 
-        {/* VIDEO / SUCCESS */}
-        <div className="relative mt-4 rounded-xl overflow-hidden bg-black">
+            {/* VIDEO */}
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              className="w-full h-full object-cover scale-125"
+            />
 
-          {status !== "success" ? (
-            <>
-              <video
-                ref={videoRef}
-                autoPlay
-                muted
-                onPlay={handleVideoPlay}
-                className="w-full rounded-xl"
-              />
-              <canvas
-                ref={canvasRef}
-                className="absolute top-0 left-0 w-full h-full"
-              />
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-16 bg-white">
+            {/* 🔥 DARK OVERLAY (focus effect) */}
+            <div className="absolute inset-0 bg-black/40"></div>
 
-              <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-12 h-12 text-green-600 animate-bounce"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-
-              <p className="mt-4 text-green-600 font-semibold text-lg">
-                Success!
-              </p>
-
-              <p className="text-gray-500 text-sm mt-1">
-                Closing automatically...
-              </p>
+            {/* 🔥 CLEAR CENTER (FACE AREA) */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-40 h-40 rounded-full backdrop-brightness-125 backdrop-blur-[1px]"></div>
             </div>
-          )}
+
+            {/* 🔥 GUIDE RING */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-40 h-40 border-2 border-dashed border-white/80 rounded-full"></div>
+            </div>
+
+            {/* 🔥 STATUS EFFECT INSIDE VIDEO */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+
+              {status === "detecting" && (
+                <div className="w-40 h-40 border border-white/70 rounded-full animate-pulse"></div>
+              )}
+
+              {status === "processing" && (
+                <div className="w-full h-full bg-blue-500/10 backdrop-blur-sm"></div>
+              )}
+
+              {status === "success" && (
+                <div className="w-full h-full bg-green-500/20 animate-pulse"></div>
+              )}
+
+              {status === "error" && (
+                <div className="w-full h-full bg-red-500/20 animate-pulse"></div>
+              )}
+
+            </div>
+
+          </div>
         </div>
 
         {/* MESSAGE */}
-        {status !== "success" && (
-          <p className="text-center mt-4 text-gray-700 text-sm">
-            {message}
-          </p>
-        )}
+        <p className="mt-4 text-sm text-gray-600">{message}</p>
 
-        {/* BUTTONS */}
-        <div className="flex justify-between mt-5">
+        {/* BUTTON */}
+        <button
+          onClick={() => {
+            stopAll();
+            onClose?.();
+          }}
+          className="mt-4 w-full bg-red-500 text-white py-2 rounded-lg"
+        >
+          Cancel
+        </button>
 
-          <button
-            onClick={() => {
-              stopEverything();
-              onClose?.();
-            }}
-            className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
-          >
-            Cancel
-          </button>
-
-          {status === "error" && (
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
-              Retry
-            </button>
-          )}
-
-        </div>
       </div>
     </div>
   );
