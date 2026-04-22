@@ -13,6 +13,7 @@ import axiosInstance from "../../api/axiosInstance";
 import useAuthActions from "../../hooks/useAuthActions";
 import Attendance from "../../components/Attendance";
 import { getWorkspaceLogo } from "../../utils/logoHelper";
+import Setting from "./components/CustomSettingsForStaff";
 import {
   Bell,
   LayoutDashboard,
@@ -400,6 +401,12 @@ export default function StaffDashboard() {
               <Attendance />
             </div>
           )}
+
+          {activePage === "settings" && (
+              <div className="mt-6">
+                <Setting />
+              </div>
+            )}
 
           {showProfile && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

@@ -48,6 +48,15 @@ const Attendance = () => {
     );
   };
 
+  const formatTo12Hour = (time24) => {
+    if (!time24) return "";
+    let [hour, minute] = time24.split(":");
+    hour = parseInt(hour);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    hour = hour % 12 || 12;
+    return `${hour}:${minute} ${ampm}`;
+  };
+
   const todayRecord = data.find((a) => isToday(a.date));
   const alreadyCheckedToday = todayRecord?.checkIn;
 
@@ -125,6 +134,12 @@ const Attendance = () => {
     }
   };
 
+  // ================= REPORT =================
+  const handleReport = (id) => {
+    // Placeholder — wire up to your report/appeal flow
+    alert(`Report submitted for record: ${id}`);
+  };
+
   // ================= STATUS =================
   const getStatus = (row) => {
     if (row.status === "Absent")
@@ -155,7 +170,37 @@ const Attendance = () => {
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* HEADER */}
       <div className="bg-white shadow-xl rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row gap-3 sm:gap-0 justify-between items-start sm:items-center">
-        <h2 className="text-xl sm:text-2xl font-bold">Attendance Dashboard</h2>
+        <div className="flex flex-col gap-1">
+          <h2 className="text-xl sm:text-2xl font-bold">Attendance Dashboard</h2>
+
+          {/* CHECK-IN TIME WINDOW */}
+          {!initialLoading && config && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs sm:text-sm text-gray-500">
+                Check-in window:
+              </span>
+              <span
+                className={`text-xs sm:text-sm font-semibold px-2 py-0.5 rounded-full ${
+                  isCheckinAllowed()
+                    ? "bg-green-100 text-green-700"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {formatTo12Hour(config.checkInStart)} – {formatTo12Hour(config.checkInEnd)}
+              </span>
+              {isCheckinAllowed() && (
+                <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse inline-block" />
+                  Open
+                </span>
+              )}
+            </div>
+          )}
+
+          {initialLoading && (
+            <div className="w-48 h-5 bg-gray-200 rounded animate-pulse mt-1" />
+          )}
+        </div>
 
         <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
           {initialLoading ? (
@@ -261,7 +306,15 @@ const Attendance = () => {
                         {getStatus(row)}
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 align-middle">
-                        {!row.checkOut ? (
+                        {/* ABSENT → Report button */}
+                        {row.status === "Absent" ? (
+                          <button
+                            onClick={() => handleReport(row._id)}
+                            className="bg-red-500 hover:bg-red-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm whitespace-nowrap"
+                          >
+                            Report
+                          </button>
+                        ) : !row.checkOut ? (
                           <button
                             onClick={() => handleCheckOut(row._id)}
                             className="bg-orange-500 hover:bg-orange-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm whitespace-nowrap"
