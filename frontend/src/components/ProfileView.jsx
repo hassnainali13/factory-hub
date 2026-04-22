@@ -1,49 +1,69 @@
-// src/components/ProfileView.jsx
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../api/axiosInstance";
 import ProfileImage from "./ProfileImage";
 import useUserProfile from "../hooks/useUserProfile";
-import { toast } from "react-toastify";
+import ImageCropper from "./ImageCropper";
+import { getCroppedImg } from "../utils/cropImage";
+import {  Edit2 } from "lucide-react";
+
 
 const ProfileView = () => {
   const { user, userName, userEmail, role, updateProfileImage } =
     useUserProfile();
 
   const [profileImage, setProfileImage] = useState(
-    "/images/default-profile.png",
+    "/images/default-profile.png"
   );
   const [uploading, setUploading] = useState(false);
+
+  // crop states
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [showCrop, setShowCrop] = useState(false);
 
   useEffect(() => {
     if (user?.profileImage) setProfileImage(user.profileImage);
   }, [user]);
 
-  const handleImageChange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  // 👉 STEP 1: user selects image
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const formData = new FormData();
-  formData.append("profile", file); // ✅ MUST MATCH BACKEND
+    const imageUrl = URL.createObjectURL(file);
 
-  try {
-    setUploading(true);
+    setSelectedImage(imageUrl);
+    setShowCrop(true);
+  };
 
-    const res = await axiosInstance.put("/users/me", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+  // 👉 STEP 2: crop and upload
+  const handleCropDone = async (croppedAreaPixels) => {
+    try {
+      const croppedBlob = await getCroppedImg(
+        selectedImage,
+        croppedAreaPixels
+      );
 
-    // ✅ Cloudinary URL directly use karo
-    const newImage = res.data.user.profileImage + "?t=" + Date.now();
+      const formData = new FormData();
+      formData.append("profile", croppedBlob);
 
-    setProfileImage(newImage);
-    updateProfileImage(newImage);
+      setUploading(true);
 
-  } catch (err) {
-    console.error("Error uploading image:", err);
-  } finally {
-    setUploading(false);
-  }
-};
+      const res = await axiosInstance.put("/users/me", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const newImage = res.data.user.profileImage + "?t=" + Date.now();
+
+      setProfileImage(newImage);
+      updateProfileImage(newImage);
+
+      setShowCrop(false);
+    } catch (err) {
+      console.error("Crop Upload Error:", err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (!user) return <div className="text-center py-10">Loading profile...</div>;
 
@@ -56,73 +76,46 @@ const ProfileView = () => {
             initials={userName?.charAt(0).toUpperCase() || "U"}
             size={140}
           />
+
           <label
             htmlFor="profile-upload"
-            className="absolute bottom-0 right-0 flex items-center justify-center w-9 h-9 bg-blue-600 text-white rounded-full shadow-lg cursor-pointer hover:bg-blue-700 transition transform hover:scale-110"
-            title="Change Profile Image"
+            className="absolute bottom-0 right-0 flex items-center justify-center w-9 h-9 bg-blue-600 text-white rounded-full cursor-pointer"
           >
-            {uploading ? (
-              <svg
-                className="w-5 h-5 animate-spin text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8H4z"
-                ></path>
-              </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            )}
+            {uploading ? "..." : <Edit2 size={16} />}
           </label>
+
           <input
             id="profile-upload"
             type="file"
             accept="image/*"
             className="hidden"
             onChange={handleImageChange}
-            disabled={uploading}
           />
         </div>
 
-        <h2 className="text-xl font-bold text-gray-800 mb-1">{userName}</h2>
+        <h2 className="text-xl font-bold">{userName}</h2>
         <p className="text-sm text-gray-500 mb-4">{role}</p>
 
         <div className="w-full space-y-3">
-          <div className="flex justify-between items-center p-3 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition">
-            <span className="font-medium text-gray-700">Email</span>
-            <span className="text-gray-900 font-semibold">{userEmail}</span>
+          <div className="flex justify-between p-3 bg-white rounded-xl">
+            <span>Email</span>
+            <span>{userEmail}</span>
           </div>
-          <div className="flex justify-between items-center p-3 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition">
-            <span className="font-medium text-gray-700">Role</span>
-            <span className="text-gray-900 font-semibold">{role}</span>
+          <div className="flex justify-between p-3 bg-white rounded-xl">
+            <span>Role</span>
+            <span>{role}</span>
           </div>
         </div>
       </div>
+
+      {/* 👉 Crop Modal */}
+      {showCrop && (
+        <ImageCropper
+          image={selectedImage}
+          onCropDone={handleCropDone}
+          onCancel={() => setShowCrop(false)}
+        />
+      )}
     </div>
   );
 };

@@ -2,6 +2,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import axiosInstance from "../../api/axiosInstance";
 import useUserProfile from "../../hooks/useUserProfile";
 import { toast } from "react-toastify";
+import { Edit2 } from "lucide-react";
+
+// ✅ NEW IMPORTS (crop feature)
+import ImageCropper from "../../components/ImageCropper";
+import { getCroppedImg } from "../../utils/cropImage";
 
 const ProfileSettings = () => {
   const { user, updateProfileImage } = useUserProfile();
@@ -16,6 +21,10 @@ const ProfileSettings = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
+
+  // ✅ NEW STATES (crop)
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [showCrop, setShowCrop] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -75,14 +84,25 @@ const ProfileSettings = () => {
     }
   }, [form, updateProfileImage]);
 
-  const handleImageChange = async (e) => {
+  // ✅ UPDATED: image select → crop open
+  const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("profile", file);
+    const imageUrl = URL.createObjectURL(file);
 
+    setSelectedImage(imageUrl);
+    setShowCrop(true);
+  };
+
+  // ✅ NEW: crop + upload
+  const handleCropDone = async (croppedAreaPixels) => {
     try {
+      const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels);
+
+      const formData = new FormData();
+      formData.append("profile", croppedBlob);
+
       setUploading(true);
 
       const res = await axiosInstance.put("/users/me", formData, {
@@ -95,6 +115,7 @@ const ProfileSettings = () => {
       updateProfileImage(newImage);
 
       toast.success("Profile image updated ✅");
+      setShowCrop(false);
     } catch (err) {
       console.error(err);
       toast.error("Image upload failed ❌");
@@ -122,17 +143,11 @@ const ProfileSettings = () => {
 
   return (
     <div className="w-full max-w-5xl mx-auto p-6">
-
-    
-
       {/* MAIN CARD */}
       <div className="bg-white/80 backdrop-blur-xl border border-gray-100 rounded-3xl shadow-xl p-6">
-
         {/* AVATAR SECTION */}
         <div className="flex flex-col items-center mb-8">
-
           <div className="relative w-[130px] h-[130px]">
-
             {profileImage ? (
               <img
                 src={profileImage}
@@ -152,7 +167,7 @@ const ProfileSettings = () => {
               {uploading ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                "+"
+                <Edit2 size={16} />
               )}
             </label>
 
@@ -172,7 +187,6 @@ const ProfileSettings = () => {
 
         {/* GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
           {/* NAME */}
           <InputCard label="Full Name">
             {editMode ? (
@@ -211,7 +225,6 @@ const ProfileSettings = () => {
 
         {/* ACTIONS */}
         <div className="flex justify-end mt-6">
-
           {!editMode ? (
             <button
               onClick={() => setEditMode(true)}
@@ -237,9 +250,17 @@ const ProfileSettings = () => {
               </button>
             </div>
           )}
-
         </div>
       </div>
+
+      {/* ✅ CROP MODAL (no UI change) */}
+      {showCrop && (
+        <ImageCropper
+          image={selectedImage}
+          onCropDone={handleCropDone}
+          onCancel={() => setShowCrop(false)}
+        />
+      )}
     </div>
   );
 };
