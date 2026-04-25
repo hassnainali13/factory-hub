@@ -6,7 +6,7 @@ import useUserProfile from "../../hooks/useUserProfile";
 import useAuthActions from "../../hooks/useAuthActions";
 import useStaffOverview from "../../hooks/useStaffOverview";
 import axiosInstance from "../../api/axiosInstance";
-
+import Setting from "./components/CustomSettingsForDepartments";
 import SidebarItem from "../../components/SidebarItem";
 import KpiCard from "../../components/KpiCard";
 import DepartmentStaffTable from "./components/DepartmentStaffTable";
@@ -415,6 +415,11 @@ export default function DepartmentHeadDashboard() {
               <Attendance />
             </div>
           )}
+           {activePage === "settings" && (
+              <div className="mt-6">
+                <Setting />
+              </div>
+            )}
 
           {/* Profile Modal */}
           {showProfile && (

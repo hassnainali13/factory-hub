@@ -1,9 +1,7 @@
-
 //frontend\src\App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import { loadModels } from "./utils/faceApi";
-
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -31,6 +29,8 @@ import SuperAdminDashboard from "./pages/superadmin/SuperAdminDashboard";
 import WorkspaceManagerDashboard from "./pages/workspace/WorkspaceManagerDashboard";
 import DepartmentHeadDashboard from "./pages/department/DepartmentHeadDashboard";
 import StaffDashboard from "./pages/staff/StaffDashboard";
+import HR_DepartmentDashboard from "./pages/department/HR_DepartmentDashboard";
+import HR_StaffDashboard from "./pages/staff/HR_StaffDashboard";
 
 /* Profile Component */
 import ProfileView from "./components/ProfileView";
@@ -39,17 +39,16 @@ import ProfileView from "./components/ProfileView";
 import JoinWorkspace from "./pages/auth/JoinWorkspace";
 
 export default function App() {
-
   // ✅ ADD THIS (MODEL PRELOAD)
   useEffect(() => {
     loadModels();
   }, []);
 
   return (
-  <>
+    <>
       {/* your routes */}
-      
-        <ToastContainer
+
+      <ToastContainer
         position="top-center"
         autoClose={3000}
         hideProgressBar={false}
@@ -64,67 +63,82 @@ export default function App() {
         bodyClassName="custom-toast-body"
       />
 
-    <Routes>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/signup-success" element={<SignupSuccess />} />
 
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/signup-success" element={<SignupSuccess />} />
+        <Route path="/profile" element={<ProfileView />} />
 
-      <Route path="/profile" element={<ProfileView />} />
+        <Route path="/workspace-options" element={<WorkspaceOptions />} />
+        <Route path="/workspace/create" element={<CreateWorkspace />} />
+        <Route path="/workspace/processing/:id" element={<ProcessingPage />} />
 
-      <Route path="/workspace-options" element={<WorkspaceOptions />} />
-      <Route path="/workspace/create" element={<CreateWorkspace />} />
-      <Route path="/workspace/processing/:id" element={<ProcessingPage />} />
+        <Route path="/join-workspace" element={<JoinWorkspace />} />
 
-      <Route path="/join-workspace" element={<JoinWorkspace />} />
+        <Route
+          path="/department-head-requests-list"
+          element={<DepartmentHeadRequestsListWrapper />}
+        />
 
-      <Route
-        path="/department-head-requests-list"
-        element={<DepartmentHeadRequestsListWrapper />}
-      />
+        <Route
+          path="/workspace/department-processing"
+          element={<DepartmentProcessPage />}
+        />
 
-      <Route
-        path="/workspace/department-processing"
-        element={<DepartmentProcessPage />}
-      />
+        <Route
+          path="/staff/staff-processing"
+          element={<StaffProcessingPage />}
+        />
 
-      <Route path="/staff/staff-processing" element={<StaffProcessingPage />} />
+        <Route
+          path="/department-head-request"
+          element={<DepartmentHeadRequestPage />}
+        />
 
-      <Route
-        path="/department-head-request"
-        element={<DepartmentHeadRequestPage />}
-      />
+        <Route path="/workspace/requests" element={<GMRequests />} />
 
-      <Route path="/workspace/requests" element={<GMRequests />} />
+        <Route path="/staff-join-confirm" element={<StaffJoinConfirm />} />
 
-      <Route path="/staff-join-confirm" element={<StaffJoinConfirm />} />
+        <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
 
-      <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
+        <Route
+          path="/workspace/dashboard"
+          element={<WorkspaceManagerDashboard />}
+        >
+          <Route path="profile" element={<ProfileView />} />
+        </Route>
 
-      <Route
-        path="/workspace/dashboard"
-        element={<WorkspaceManagerDashboard />}
-      >
-        <Route path="profile" element={<ProfileView />} />
-      </Route>
+        <Route
+          path="/department/dashboard"
+          element={<DepartmentHeadDashboard />}
+        >
+          <Route path="profile" element={<ProfileView />} />
+        </Route>
 
-      <Route path="/department/dashboard" element={<DepartmentHeadDashboard />}>
-        <Route path="profile" element={<ProfileView />} />
-      </Route>
+        <Route path="/staff/dashboard" element={<StaffDashboard />}>
+          <Route path="profile" element={<ProfileView />} />
+        </Route>
 
-      <Route path="/staff/dashboard" element={<StaffDashboard />}>
-        <Route path="profile" element={<ProfileView />} />
-      </Route>
+        <Route
+          path="/hr-department/dashboard"
+          element={<HR_DepartmentDashboard />}
+        >
+          <Route path="profile" element={<ProfileView />} />
+        </Route>
 
-      <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/hr-staff/dashboard" element={<HR_StaffDashboard />}>
+          <Route path="profile" element={<ProfileView />} />
+        </Route>
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-      <Route
-        path="*"
-        element={
-          <div className="p-10 text-center text-xl">404 | Page Not Found</div>
-        }
-      />
-    </Routes>
-     </>
+        <Route
+          path="*"
+          element={
+            <div className="p-10 text-center text-xl">404 | Page Not Found</div>
+          }
+        />
+      </Routes>
+    </>
   );
 }

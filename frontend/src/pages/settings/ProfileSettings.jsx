@@ -243,7 +243,6 @@ const ProfileSettings = () => {
             value={form.email}
             icon={Mail}
             type="email"
-            editMode={editMode}
             handleChange={handleChange}
           />
 
