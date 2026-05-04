@@ -11,7 +11,7 @@ export default function useUserProfile() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = authUser ? { data: authUser } : await axiosInstance.get("/users/me");
+        const res = await axiosInstance.get("/users/me");
         setUser(res.data);
       } catch (err) {
         console.error("Failed to fetch user:", err);

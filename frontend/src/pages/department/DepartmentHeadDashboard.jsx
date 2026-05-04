@@ -70,6 +70,7 @@ export default function DepartmentHeadDashboard() {
   };
 
   const departmentData = department || dummyDepartment;
+  const displayRole = user?.departmentId?.head || role;
 
   const displayEmployees = Array.isArray(staffRequests) ? staffRequests : [];
   const dummyAttendanceData = [
@@ -258,7 +259,7 @@ export default function DepartmentHeadDashboard() {
                 {departmentData.department || "Department Name"}, Dashboard
               </h1>
               <p className="mt-1 text-sm text-slate-500">
-                Welcome back, {userName} — {role}
+                Welcome back, {userName} — {displayRole}
               </p>
             </div>
 
