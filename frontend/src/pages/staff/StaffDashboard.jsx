@@ -403,10 +403,10 @@ export default function StaffDashboard() {
           )}
 
           {activePage === "settings" && (
-              <div className="mt-6">
-                <Setting />
-              </div>
-            )}
+            <div className="mt-6">
+              <Setting />
+            </div>
+          )}
 
           {showProfile && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

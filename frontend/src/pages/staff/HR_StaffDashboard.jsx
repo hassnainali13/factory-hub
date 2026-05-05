@@ -324,7 +324,7 @@ export default function HR_StaffDashboard() {
                 {departmentData.department || "HR Department"}, Staff Dashboard
               </h1>
               <p className="mt-1 text-sm text-slate-500">
-                Welcome back, {profile.name} — HR Staff
+                Welcome back, {profile.name}
               </p>
             </div>
 

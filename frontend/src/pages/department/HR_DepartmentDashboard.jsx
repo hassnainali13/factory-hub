@@ -346,7 +346,7 @@ export default function DepartmentHeadDashboard() {
                 <span className="block w-6 h-0.5 bg-blue-500"></span>
                 <span className="block w-6 h-0.5 bg-blue-500"></span>
               </button>
-              
+
               <button className="grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition">
                 <Bell className="h-4 w-4 text-slate-700" />
               </button>

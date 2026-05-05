@@ -31,5 +31,13 @@ export default function useUserProfile() {
   const role = user?.role || "User Role";
   const userInitial = userName?.trim()?.charAt(0).toUpperCase() || "M";
 
-  return { user, loading, userName, userEmail, role, userInitial, updateProfileImage };
+  return {
+    user,
+    loading,
+    userName,
+    userEmail,
+    role,
+    userInitial,
+    updateProfileImage,
+  };
 }

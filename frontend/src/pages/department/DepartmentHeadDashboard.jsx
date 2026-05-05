@@ -213,7 +213,7 @@ export default function DepartmentHeadDashboard() {
                   active={activePage === "approvals"}
                   onClick={() => setActivePage("approvals")}
                 />
-                
+
                 <SidebarItem
                   icon={Shield}
                   label="Tasks"
@@ -416,11 +416,11 @@ export default function DepartmentHeadDashboard() {
               <Attendance />
             </div>
           )}
-           {activePage === "settings" && (
-              <div className="mt-6">
-                <Setting />
-              </div>
-            )}
+          {activePage === "settings" && (
+            <div className="mt-6">
+              <Setting />
+            </div>
+          )}
 
           {/* Profile Modal */}
           {showProfile && (
