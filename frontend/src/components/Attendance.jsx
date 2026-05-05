@@ -9,6 +9,11 @@ const Attendance = () => {
   const [config, setConfig] = useState(null);
   const [showFaceRegister, setShowFaceRegister] = useState(false);
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportingAttendanceId, setReportingAttendanceId] = useState(null);
+  const [reportText, setReportText] = useState("");
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportMessage, setReportMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [now, setNow] = useState(new Date());
@@ -135,15 +140,51 @@ const Attendance = () => {
   };
 
   // ================= REPORT =================
-  const handleReport = (id) => {
-    // Placeholder — wire up to your report/appeal flow
-    alert(`Report submitted for record: ${id}`);
+  const handleReport = (id, existingReport = "") => {
+    setReportingAttendanceId(id);
+    setReportText(existingReport);
+    setReportMessage("");
+    setShowReportModal(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!reportText.trim()) {
+      setReportMessage("Please enter your report before sending.");
+      return;
+    }
+
+    try {
+      setReportLoading(true);
+      const res = await axiosInstance.post(
+        `/attendance/report/${reportingAttendanceId}`,
+        { report: reportText.trim() },
+      );
+
+      const updated = res.data?.attendance || res.data;
+      setData((prev) =>
+        prev.map((item) => (item._id === updated._id ? updated : item)),
+      );
+      setShowReportModal(false);
+    } catch (err) {
+      console.error(err);
+      setReportMessage(
+        err.response?.data?.message || "Unable to send report. Try again.",
+      );
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   // ================= STATUS =================
   const getStatus = (row) => {
-    if (row.status === "Absent")
-      return <span className="text-red-500 font-semibold">Absent</span>;
+    if (row.reportStatus === "approved") {
+      return <span className="text-green-600 font-semibold">Done</span>;
+    }
+    if (row.status === "Absent") {
+      const label =
+        row.reportStatus === "pending" ? "Absent (Reported)" : "Absent";
+      return <span className="text-red-500 font-semibold">{label}</span>;
+    }
     if (!row.checkIn) return <span className="text-gray-500">Pending</span>;
     if (!row.checkOut) return <span className="text-yellow-500">Working</span>;
     return <span className="text-green-600 font-semibold">Done</span>;
@@ -171,7 +212,9 @@ const Attendance = () => {
       {/* HEADER */}
       <div className="bg-white shadow-xl rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row gap-3 sm:gap-0 justify-between items-start sm:items-center">
         <div className="flex flex-col gap-1">
-          <h2 className="text-xl sm:text-2xl font-bold">Attendance Dashboard</h2>
+          <h2 className="text-xl sm:text-2xl font-bold">
+            Attendance Dashboard
+          </h2>
 
           {/* CHECK-IN TIME WINDOW */}
           {!initialLoading && config && (
@@ -186,7 +229,8 @@ const Attendance = () => {
                     : "bg-gray-100 text-gray-500"
                 }`}
               >
-                {formatTo12Hour(config.checkInStart)} – {formatTo12Hour(config.checkInEnd)}
+                {formatTo12Hour(config.checkInStart)} –{" "}
+                {formatTo12Hour(config.checkInEnd)}
               </span>
               {isCheckinAllowed() && (
                 <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
@@ -251,17 +295,84 @@ const Attendance = () => {
         />
       )}
 
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
+          <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Send Leave Report
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Write a short explanation for the absent record and submit it
+                  to HR.
+                </p>
+              </div>
+              <button
+                className="text-slate-500 hover:text-slate-900"
+                onClick={() => setShowReportModal(false)}
+              >
+                Close
+              </button>
+            </div>
+
+            <textarea
+              value={reportText}
+              onChange={(e) => setReportText(e.target.value)}
+              className="mt-5 min-h-[140px] w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              placeholder="Write your report for this absent attendance..."
+            />
+
+            {reportMessage && (
+              <p className="mt-3 text-sm font-medium text-red-600">
+                {reportMessage}
+              </p>
+            )}
+
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitReport}
+                disabled={reportLoading}
+                className={`rounded-2xl px-4 py-2 text-sm font-semibold text-white transition ${
+                  reportLoading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-indigo-600 hover:bg-indigo-700"
+                }`}
+              >
+                {reportLoading ? "Sending..." : "Send Report"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* TABLE */}
       <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-xs sm:text-sm border-collapse">
             <thead className="bg-gray-100">
               <tr>
-                <th className="px-3 sm:px-6 py-3 text-left font-semibold whitespace-nowrap">Date</th>
-                <th className="px-3 sm:px-6 py-3 text-left font-semibold whitespace-nowrap">Check-In</th>
-                <th className="px-3 sm:px-6 py-3 text-left font-semibold whitespace-nowrap">Check-Out</th>
-                <th className="px-3 sm:px-6 py-3 text-left font-semibold whitespace-nowrap">Status</th>
-                <th className="px-3 sm:px-6 py-3 text-left font-semibold whitespace-nowrap">Action</th>
+                <th className="px-3 sm:px-6 py-3 text-left font-semibold whitespace-nowrap">
+                  Date
+                </th>
+                <th className="px-3 sm:px-6 py-3 text-left font-semibold whitespace-nowrap">
+                  Check-In
+                </th>
+                <th className="px-3 sm:px-6 py-3 text-left font-semibold whitespace-nowrap">
+                  Check-Out
+                </th>
+                <th className="px-3 sm:px-6 py-3 text-left font-semibold whitespace-nowrap">
+                  Status
+                </th>
+                <th className="px-3 sm:px-6 py-3 text-left font-semibold whitespace-nowrap">
+                  Action
+                </th>
               </tr>
             </thead>
 
@@ -306,14 +417,33 @@ const Attendance = () => {
                         {getStatus(row)}
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 align-middle">
-                        {/* ABSENT → Report button */}
-                        {row.status === "Absent" ? (
-                          <button
-                            onClick={() => handleReport(row._id)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm whitespace-nowrap"
-                          >
-                            Report
-                          </button>
+                        {row.reportStatus === "approved" ? (
+                          <span className="text-gray-400 text-xs sm:text-sm">
+                            Done
+                          </span>
+                        ) : row.status === "Absent" ? (
+                          row.reportStatus === "pending" ? (
+                            <button
+                              onClick={() => handleReport(row._id, row.report)}
+                              className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm whitespace-nowrap"
+                            >
+                              View Report
+                            </button>
+                          ) : row.reportStatus === "rejected" ? (
+                            <button
+                              disabled
+                              className="bg-gray-300 text-gray-600 px-2 sm:px-3 py-1 rounded text-xs sm:text-sm whitespace-nowrap cursor-not-allowed"
+                            >
+                              Rejected
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleReport(row._id)}
+                              className="bg-red-500 hover:bg-red-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm whitespace-nowrap"
+                            >
+                              Report
+                            </button>
+                          )
                         ) : !row.checkOut ? (
                           <button
                             onClick={() => handleCheckOut(row._id)}
@@ -322,7 +452,9 @@ const Attendance = () => {
                             Check Out
                           </button>
                         ) : (
-                          <span className="text-gray-400 text-xs sm:text-sm">Done</span>
+                          <span className="text-gray-400 text-xs sm:text-sm">
+                            Done
+                          </span>
                         )}
                       </td>
                     </tr>

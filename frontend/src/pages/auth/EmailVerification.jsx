@@ -2,9 +2,15 @@ import { useState, useRef, useEffect } from "react";
 import axiosInstance from "../../api/axiosInstance";
 import { toast } from "react-toastify";
 const RESEND_COOLDOWN = 30; // seconds
-const OTP_EXPIRY = 600;    // 10 minutes
+const OTP_EXPIRY = 600; // 10 minutes
 
-export default function EmailVerification({ email, onVerified, onBack }) {
+export default function EmailVerification({
+  email,
+  onVerified,
+  onBack,
+  verifyEndpoint = "/auth/verify-otp",
+  resendEndpoint = "/auth/resend-otp",
+}) {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null); // { type: 'error'|'success'|'info', msg }
@@ -22,14 +28,14 @@ export default function EmailVerification({ email, onVerified, onBack }) {
   // ── Resend cooldown countdown ──
   useEffect(() => {
     if (resendSec === 0) return;
-    const t = setTimeout(() => setResendSec(s => s - 1), 1000);
+    const t = setTimeout(() => setResendSec((s) => s - 1), 1000);
     return () => clearTimeout(t);
   }, [resendSec]);
 
   // ── OTP expiry countdown ──
   useEffect(() => {
     if (otpSec === 0) return;
-    const t = setTimeout(() => setOtpSec(s => s - 1), 1000);
+    const t = setTimeout(() => setOtpSec((s) => s - 1), 1000);
     return () => clearTimeout(t);
   }, [otpSec]);
 
@@ -69,24 +75,31 @@ export default function EmailVerification({ email, onVerified, onBack }) {
     e.preventDefault();
     const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     const updated = [...digits];
-    text.split("").forEach((ch, i) => { updated[i] = ch; });
+    text.split("").forEach((ch, i) => {
+      updated[i] = ch;
+    });
     setDigits(updated);
     refs.current[Math.min(text.length, 5)]?.focus();
   };
 
   const handleVerify = async () => {
     if (otpExpired) {
-      setAlert({ type: "error", msg: "Code has expired. Please request a new one." });
+      setAlert({
+        type: "error",
+        msg: "Code has expired. Please request a new one.",
+      });
       return;
     }
     try {
       setLoading(true);
       setAlert(null);
-      await axiosInstance.post("/auth/verify-otp", { email, otp: getOtp() });
-      toast.success("Email verified successfully! Redirecting...");
-      setTimeout(() => onVerified(), 1500);
+      await axiosInstance.post(verifyEndpoint, { email, otp: getOtp() });
+      toast.success("OTP verified successfully! Redirecting...");
+      setTimeout(() => onVerified(getOtp()), 1500);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Incorrect code. Please try again.");
+      toast.error(
+        err.response?.data?.message || "Incorrect code. Please try again.",
+      );
       setDigits(["", "", "", "", "", ""]);
       refs.current[0]?.focus();
     } finally {
@@ -99,7 +112,7 @@ export default function EmailVerification({ email, onVerified, onBack }) {
     try {
       setDigits(["", "", "", "", "", ""]);
       setAlert(null);
-      await axiosInstance.post("/auth/resend-otp", { email });
+      await axiosInstance.post(resendEndpoint, { email });
       setResendSec(RESEND_COOLDOWN);
       setOtpSec(OTP_EXPIRY);
       toast.info("A new code has been sent to your email.");
@@ -115,31 +128,36 @@ export default function EmailVerification({ email, onVerified, onBack }) {
   const timerColor = otpExpired
     ? "text-red-500"
     : otpSec <= 60
-    ? "text-amber-500"
-    : "text-green-500";
+      ? "text-amber-500"
+      : "text-green-500";
 
   const alertStyles = {
-    error:   "bg-red-50 border border-red-200 text-red-700",
+    error: "bg-red-50 border border-red-200 text-red-700",
     success: "bg-green-50 border border-green-200 text-green-700",
-    info:    "bg-blue-50 border border-blue-200 text-blue-700",
+    info: "bg-blue-50 border border-blue-200 text-blue-700",
   };
 
   const alertIcons = { error: "[!]", success: "[✓]", info: "[i]" };
 
   return (
     <div className="mt-6 space-y-4">
-
       {/* ── Alert Banner ── */}
       {alert && (
-        <div className={`rounded-xl p-3 text-sm flex items-start gap-2 ${alertStyles[alert.type]}`}>
-          <span className="font-mono text-xs mt-0.5 shrink-0">{alertIcons[alert.type]}</span>
+        <div
+          className={`rounded-xl p-3 text-sm flex items-start gap-2 ${alertStyles[alert.type]}`}
+        >
+          <span className="font-mono text-xs mt-0.5 shrink-0">
+            {alertIcons[alert.type]}
+          </span>
           <span>{alert.msg}</span>
         </div>
       )}
 
       {/* ── OTP Expiry Timer ── */}
       <div className="flex items-center justify-center gap-2">
-        <div className={`w-1.5 h-1.5 rounded-full ${otpExpired ? "bg-red-500" : "bg-green-500 animate-pulse"}`} />
+        <div
+          className={`w-1.5 h-1.5 rounded-full ${otpExpired ? "bg-red-500" : "bg-green-500 animate-pulse"}`}
+        />
         <span className={`font-mono text-xs tracking-widest ${timerColor}`}>
           {otpExpired ? "CODE EXPIRED" : `EXPIRES IN ${fmtTime(otpSec)}`}
         </span>
@@ -150,7 +168,9 @@ export default function EmailVerification({ email, onVerified, onBack }) {
         {digits.map((d, i) => (
           <>
             {i === 3 && (
-              <span key="sep" className="text-blue-200 font-bold text-xl pb-1">—</span>
+              <span key="sep" className="text-blue-200 font-bold text-xl pb-1">
+                —
+              </span>
             )}
             <input
               key={i}
@@ -163,11 +183,12 @@ export default function EmailVerification({ email, onVerified, onBack }) {
               onKeyDown={(e) => handleKeyDown(e, i)}
               onPaste={handlePaste}
               className={`w-11 h-14 text-center text-xl font-bold font-mono rounded-xl border-2 outline-none transition-all
-                ${alert?.type === "error" && isFilled
-                  ? "border-red-400 bg-red-50 text-red-700"
-                  : d
-                  ? "border-blue-500 bg-white text-blue-900"
-                  : "border-blue-200 bg-blue-50 text-blue-900"
+                ${
+                  alert?.type === "error" && isFilled
+                    ? "border-red-400 bg-red-50 text-red-700"
+                    : d
+                      ? "border-blue-500 bg-white text-blue-900"
+                      : "border-blue-200 bg-blue-50 text-blue-900"
                 }
                 focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100`}
             />
@@ -197,7 +218,10 @@ export default function EmailVerification({ email, onVerified, onBack }) {
       </button>
 
       {onBack && (
-        <button onClick={onBack} className="w-full text-sm text-blue-600 underline">
+        <button
+          onClick={onBack}
+          className="w-full text-sm text-blue-600 underline"
+        >
           Back
         </button>
       )}

@@ -144,10 +144,7 @@ const ProfileSettings = () => {
 
   const handleCropDone = async (croppedAreaPixels) => {
     try {
-      const croppedBlob = await getCroppedImg(
-        selectedImage,
-        croppedAreaPixels
-      );
+      const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels);
 
       const formData = new FormData();
       formData.append("profile", croppedBlob);
@@ -185,7 +182,6 @@ const ProfileSettings = () => {
   return (
     <div className="w-full max-w-5xl mx-auto p-4 sm:p-6">
       <div className="bg-white/80 backdrop-blur-xl border border-gray-100 rounded-3xl shadow-xl p-5 sm:p-6">
-
         {/* AVATAR */}
         <div className="flex flex-col items-center mb-8">
           <div className="relative w-[120px] h-[120px] sm:w-[130px] sm:h-[130px]">

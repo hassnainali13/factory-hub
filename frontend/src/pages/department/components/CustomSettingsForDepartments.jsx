@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import AttendanceTimeSettings from "../../settings/AttendanceTimeSettings";
 import ProfileSettings from "../../settings/ProfileSettings";
+import SecuritySettings from "../../settings/SecuritySettings";
 
 import {
   Clock,
@@ -10,7 +11,6 @@ import {
   ChevronRight,
   ArrowLeft,
   Settings2,
-
 } from "lucide-react";
 
 const CustomSettingsForDepartments = () => {
@@ -19,7 +19,6 @@ const CustomSettingsForDepartments = () => {
   const [search, setSearch] = useState("");
 
   const settingsList = [
-   
     {
       key: "profile",
       title: "Profile Settings",
@@ -41,14 +40,14 @@ const CustomSettingsForDepartments = () => {
       title: "Security",
       desc: "Password & access control",
       icon: Shield,
-      enabled: false,
+      enabled: true,
       color: "text-red-600 bg-red-100",
     },
   ];
 
   const filteredSettings = useMemo(() => {
     return settingsList.filter((item) =>
-      item.title.toLowerCase().includes(search.toLowerCase())
+      item.title.toLowerCase().includes(search.toLowerCase()),
     );
   }, [search]);
 
@@ -63,29 +62,23 @@ const CustomSettingsForDepartments = () => {
     switch (activePage) {
       case "profile":
         return <ProfileSettings />;
+      case "security":
+        return <SecuritySettings />;
       default:
-        return (
-          <div className="text-blue-400 py-10">
-            No setting found
-          </div>
-        );
+        return <div className="text-blue-400 py-10">No setting found</div>;
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex flex-row items-start justify-start">
-
       {/* ================= MENU ================= */}
       {view === "menu" && (
         <div className="w-full md:w-[380px] lg:w-[420px] bg-white/70 backdrop-blur-xl flex flex-col shadow-lg min-h-screen">
-
           {/* HEADER */}
           <div className="p-5">
             <div className="flex items-center gap-2">
               <Settings2 className="text-blue-600" size={22} />
-              <h1 className="text-xl font-bold text-blue-700">
-                Settings
-              </h1>
+              <h1 className="text-xl font-bold text-blue-700">Settings</h1>
             </div>
 
             <input
@@ -124,9 +117,7 @@ const CustomSettingsForDepartments = () => {
                     <h2 className="text-sm font-semibold text-gray-800">
                       {item.title}
                     </h2>
-                    <p className="text-xs text-gray-500">
-                      {item.desc}
-                    </p>
+                    <p className="text-xs text-gray-500">{item.desc}</p>
                   </div>
 
                   {item.enabled && (
@@ -142,10 +133,8 @@ const CustomSettingsForDepartments = () => {
       {/* ================= PAGE VIEW ================= */}
       {view === "page" && (
         <div className="flex-1 w-full flex flex-col items-start justify-start">
-
           {/* TOP BAR */}
           <div className="w-full flex items-center gap-3 p-5 bg-white/70 backdrop-blur-xl shadow-sm">
-
             <button
               onClick={() => setView("menu")}
               className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100"
@@ -162,9 +151,7 @@ const CustomSettingsForDepartments = () => {
                 <h2 className="text-lg font-bold text-blue-700">
                   {activeItem?.title}
                 </h2>
-                <p className="text-xs text-gray-500">
-                  {activeItem?.desc}
-                </p>
+                <p className="text-xs text-gray-500">{activeItem?.desc}</p>
               </div>
             </div>
           </div>
@@ -173,7 +160,6 @@ const CustomSettingsForDepartments = () => {
           <div className="w-full flex justify-start items-start p-5">
             {renderComponent()}
           </div>
-
         </div>
       )}
     </div>

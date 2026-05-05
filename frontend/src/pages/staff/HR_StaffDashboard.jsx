@@ -35,6 +35,8 @@ export default function HR_StaffDashboard() {
   );
   const [department, setDepartment] = useState(null);
   const [workspaceUsers, setWorkspaceUsers] = useState([]);
+  const [reportItems, setReportItems] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(false);
   const [activePage, setActivePage] = useState("dashboard");
   const [showProfile, setShowProfile] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
@@ -132,6 +134,28 @@ export default function HR_StaffDashboard() {
     fetchWorkspaceUsers();
   }, [fetchWorkspaceUsers]);
 
+  useEffect(() => {
+    if (activePage === "reports") {
+      const fetchReports = async () => {
+        setLoadingReports(true);
+        try {
+          const res = await axiosInstance.get("/attendance/reports");
+          setReportItems(res.data.reports || []);
+        } catch (err) {
+          console.error(
+            "Error fetching my assigned reports:",
+            err?.response?.data || err.message,
+          );
+          setReportItems([]);
+        } finally {
+          setLoadingReports(false);
+        }
+      };
+
+      fetchReports();
+    }
+  }, [activePage]);
+
   const allEmployees = Array.isArray(workspaceUsers) ? workspaceUsers : [];
   const activeEmployees = allEmployees.filter(
     (emp) => emp.status?.toLowerCase() === "active",
@@ -217,6 +241,24 @@ export default function HR_StaffDashboard() {
 
   const handleView = (emp) => {
     console.log("View employee:", emp);
+  };
+
+  const handleApproveReport = async (id) => {
+    try {
+      await axiosInstance.patch(`/attendance/report/${id}/approve`);
+      setReportItems((prev) => prev.filter((report) => report._id !== id));
+    } catch (err) {
+      console.error("Approve report error:", err.response?.data || err.message);
+    }
+  };
+
+  const handleRejectReport = async (id) => {
+    try {
+      await axiosInstance.patch(`/attendance/report/${id}/reject`);
+      setReportItems((prev) => prev.filter((report) => report._id !== id));
+    } catch (err) {
+      console.error("Reject report error:", err.response?.data || err.message);
+    }
   };
 
   if (loading) {
@@ -698,12 +740,93 @@ export default function HR_StaffDashboard() {
           )}
 
           {activePage === "reports" && (
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-              <FileBarChart2 className="mx-auto h-10 w-10 text-slate-300 mb-3" />
-              <p className="text-sm font-semibold text-slate-700">Reports</p>
-              <p className="text-xs text-slate-400 mt-1">
-                Reports module coming soon.
-              </p>
+            <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    My Assigned Reports
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    This list is distributed across HR staff by load.
+                  </p>
+                </div>
+              </div>
+
+              {loadingReports ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 4 }).map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="h-16 rounded-2xl bg-slate-100 animate-pulse"
+                    />
+                  ))}
+                </div>
+              ) : reportItems.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+                  No assigned attendance reports available.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm text-left">
+                    <thead className="bg-slate-100">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold text-slate-700">
+                          Date
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-slate-700">
+                          Employee
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-slate-700">
+                          Report
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-slate-700">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-slate-700">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportItems.map((item) => (
+                        <tr
+                          key={item._id}
+                          className="border-t border-slate-200"
+                        >
+                          <td className="px-4 py-4 text-slate-600">
+                            {new Date(item.date).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-4 text-slate-600">
+                            {item.user?.name || item.user?.email || "Unknown"}
+                          </td>
+                          <td className="px-4 py-4 text-slate-600 max-w-[320px] overflow-hidden text-ellipsis whitespace-nowrap">
+                            {item.report}
+                          </td>
+                          <td className="px-4 py-4 text-slate-600">
+                            <span className="inline-flex rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800">
+                              Pending
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-slate-600 space-x-2">
+                            <button
+                              onClick={() => handleApproveReport(item._id)}
+                              className="rounded-2xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleRejectReport(item._id)}
+                              className="rounded-2xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-700"
+                            >
+                              Reject
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
