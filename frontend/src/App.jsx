@@ -6,6 +6,8 @@ import { loadModels } from "./utils/faceApi";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+import { PageNotFound } from "./components/ErrorComponents";
+
 /* Auth Pages */
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
@@ -132,12 +134,7 @@ export default function App() {
         </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />
 
-        <Route
-          path="*"
-          element={
-            <div className="p-10 text-center text-xl">404 | Page Not Found</div>
-          }
-        />
+        <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>
   );

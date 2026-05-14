@@ -1,8 +1,7 @@
 // src/pages/workspace/WorkspaceManagerDashboard.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import useUserProfile from "../../hooks/useUserProfile";
-import useWorkspaceDetails from "../../hooks/useWorkspaceDetails";
 import useAuthActions from "../../hooks/useAuthActions";
 import useDropdown from "../../hooks/useDropdown";
 import axiosInstance from "../../api/axiosInstance";
@@ -29,48 +28,12 @@ import {
   Shield,
   Users,
   FileBarChart2,
-  Building2,
   ClipboardList,
   TrendingUp,
   Settings,
 } from "lucide-react";
 
-// KPI Cards data
-const kpiCards = [
-  {
-    title: "Total Departments",
-    value: 8,
-    delta: "+2 this month",
-    icon: Building2,
-    accent: "text-blue-600",
-    bg: "bg-blue-50",
-  },
-  {
-    title: "Department Heads",
-    value: 24,
-    delta: "+3 this month",
-    icon: Users,
-    accent: "text-violet-600",
-    bg: "bg-violet-50",
-  },
-  {
-    title: "Total Employees",
-    value: 476,
-    delta: "+42 this month",
-    icon: TrendingUp,
-    accent: "text-emerald-600",
-    bg: "bg-emerald-50",
-  },
-  {
-    title: "Pending Approvals",
-    value: 11,
-    delta: "Requires attention",
-    icon: CheckSquare,
-    accent: "text-orange-700",
-    bg: "bg-orange-50",
-    border: "border-orange-200",
-  },
-];
+// KPI Cards data - moved inside component to make dynamic
 
 const departmentsData = [
   { name: "Production", employees: 45 },
@@ -130,6 +93,7 @@ export default function WorkspaceManagerDashboard() {
 
   const [departments, setDepartments] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [showProfile, setShowProfile] = useState(false);
 
   // 🔥 Fetch all departments and pending users
@@ -154,9 +118,33 @@ export default function WorkspaceManagerDashboard() {
     }
   };
 
+  // 🔥 Fetch all workspace users
+  const fetchAllUsers = async () => {
+    if (!workspaceId) return;
+
+    try {
+      const res = await axiosInstance.get(`/users/workspace-users`);
+      setAllUsers(res.data.users || []);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      setAllUsers([]);
+    }
+  };
+
   useEffect(() => {
     fetchDepartments();
+    fetchAllUsers();
   }, [workspaceId]);
+
+  useEffect(() => {
+    if (user?.workspaceStatus === "disabled") {
+      const workspaceIdValue =
+        user.workspaceId?._id || user.workspaceId || workspaceId;
+      if (workspaceIdValue) {
+        navigate(`/workspace/processing/${workspaceIdValue}`);
+      }
+    }
+  }, [user, workspaceId, navigate]);
 
   // ✅ Approve request
   const handleApprove = async (userId) => {
@@ -224,6 +212,50 @@ export default function WorkspaceManagerDashboard() {
   const activeDepartments = departments.filter(
     (d) => d.status?.toLowerCase() === "active",
   );
+
+  // KPI Cards data - dynamic
+  const kpiCards = useMemo(() => {
+    const activeDepts = departments.filter(
+      (d) => d.status?.toLowerCase() === "active",
+    );
+    return [
+      {
+        title: "Total Departments",
+        value: departments.length,
+        delta: `${activeDepts.length} active`,
+        icon: Boxes,
+        accent: "text-blue-600",
+        bg: "bg-blue-50",
+      },
+      {
+        title: "Department Heads",
+        value: new Set(
+          departments.map((d) => d.deptHeadId?._id).filter(Boolean),
+        ).size,
+        delta: "Unique heads",
+        icon: Users,
+        accent: "text-violet-600",
+        bg: "bg-violet-50",
+      },
+      {
+        title: "Total Employees",
+        value: allUsers.length,
+        delta: "Across workspace",
+        icon: TrendingUp,
+        accent: "text-emerald-600",
+        bg: "bg-emerald-50",
+      },
+      {
+        title: "Pending Approvals",
+        value: pendingRequests.length,
+        delta: "Requires attention",
+        icon: CheckSquare,
+        accent: "text-orange-700",
+        bg: "bg-orange-50",
+        border: "border-orange-200",
+      },
+    ];
+  }, [departments, pendingRequests, allUsers]);
 
   if (loading) {
     return (
@@ -534,17 +566,16 @@ ${showSidebar ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
               setDepartments={setDepartments}
             />
           )}
-            {activePage === "attendance" && (
-              <div className="mt-6">
-                <Attendance />
-              </div>
-            )}
-            {activePage === "settings" && (
-              <div className="mt-6">
-                <Setting />
-              </div>
-            )}
-
+          {activePage === "attendance" && (
+            <div className="mt-6">
+              <Attendance />
+            </div>
+          )}
+          {activePage === "settings" && (
+            <div className="mt-6">
+              <Setting />
+            </div>
+          )}
 
           {showProfile && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

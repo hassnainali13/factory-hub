@@ -10,8 +10,11 @@ import {
 
 export default function BarChart({ data, xKey, yKey, barColor = "#3b82f6" }) {
   return (
-    <div className="h-[260px] mt-4">
-      <ResponsiveContainer width="100%" height="100%">
+    <div
+      className="w-full h-[260px] mt-4 min-h-[260px] min-w-0"
+      style={{ width: "100%", minWidth: 0, minHeight: 260 }}
+    >
+      <ResponsiveContainer width="100%" height={260} minWidth={0} minHeight={0}>
         <RechartsBarChart data={data} barSize={38}>
           <CartesianGrid
             strokeDasharray="3 3"

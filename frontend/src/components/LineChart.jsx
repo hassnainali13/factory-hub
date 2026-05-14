@@ -11,8 +11,11 @@ import {
 
 export default function LineChart({ data, lines = [] }) {
   return (
-    <div className="h-[260px] mt-4">
-      <ResponsiveContainer width="100%" height="100%">
+    <div
+      className="w-full h-[260px] mt-4 min-h-[260px] min-w-0"
+      style={{ width: "100%", minWidth: 0, minHeight: 260 }}
+    >
+      <ResponsiveContainer width="100%" height={260} minWidth={0} minHeight={0}>
         <RechartsLineChart data={data}>
           <CartesianGrid
             strokeDasharray="3 3"

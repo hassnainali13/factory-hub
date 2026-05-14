@@ -1,12 +1,10 @@
-
-
 // frontend/src/pages/auth/Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import axiosInstance from "../../api/axiosInstance";
 import { toast } from "react-toastify";
-import { isRecruiterRole } from "../../utils/isRecruiterRole";
+import { navigateByRole } from "../../utils/navigateByRole";
 import EmailVerification from "./EmailVerification";
 
 export default function Login() {
@@ -30,99 +28,6 @@ export default function Login() {
   };
 
   // =========================================================
-  // NAVIGATE BY ROLE
-  // Priority: Superadmin → Staff → Department Head → GM/Industry → Default
-  // =========================================================
-  const navigateByRole = (user) => {
-    const role = (user.role || "").toLowerCase();
-    const reqStatus = (user.requestStatus || "").toLowerCase();
-    const workspaceStatus = (user.workspaceStatus || "").toLowerCase();
-    // ── 1. Superadmin ─────────────────────────────────────
-    if (role === "superadmin") {
-      navigate("/superadmin/dashboard");
-      return;
-    }
-
-    // // ── 2. Staff ──────────────────────────────────────────
-    // if (role === "staff") {
-    //   if (user.staffstatus === "approved") {
-    //     navigate("/staff/dashboard");
-    //   }
-    //   else {
-    //     navigate("/staff/staff-processing");
-    //   }
-    //   return;
-    // }
-
-    // ── 2. Staff ──────────────────────────────────────────
-    if (role === "staff") {
-      if (user.staffstatus !== "approved") {
-        navigate("/staff/staff-processing");
-        return;
-      }
-
-      // Approved — check department head
-      const departmentHead = user?.staffId?.departmentId?.head || "";
-      console.log("Department Head:", departmentHead);
-
-      if (isRecruiterRole(departmentHead)) {
-        navigate("/hr-staff/dashboard");
-      } else {
-        navigate("/staff/dashboard");
-      }
-      return;
-    }
-
-    // ── 3. Department Head (2 types) ──────────────────────
-    if (role === "department_head") {
-      // Pending — same for both types
-      if (user.departmentId && reqStatus === "pending") {
-        navigate("/workspace/department-processing");
-        return;
-      }
-
-      if (reqStatus === "approved") {
-        const departmentHead = user?.departmentId?.head || "";
-
-        // ✅ Type 1 — HR Department Head (Recruiter / HR Head / etc.)
-        if (isRecruiterRole(departmentHead)) {
-          navigate("/hr-department/dashboard");
-          return;
-        }
-
-        // ✅ Type 2 — Normal Department Head
-        navigate("/department/dashboard");
-        return;
-      }
-    }
-
-    // ── 4. General Manager / Industry Head ────────────────
-    if (role === "general_manager" || role === "industry_head") {
-      if (!user.workspaceId) {
-        navigate("/workspace-options");
-        return;
-      }
-
-      if (workspaceStatus === "pending") {
-        navigate(`/workspace/processing/${user.workspaceId}`);
-        return;
-      }
-
-      if (workspaceStatus === "active") {
-        navigate("/workspace/dashboard");
-        return;
-      }
-
-      // Fallback — workspace exists but status unknown
-      navigate("/workspace/dashboard");
-      return;
-    }
-
-    // ── 5. Default fallback ───────────────────────────────
-    navigate("/workspace-options");
-  };
-
-  // =========================================================
   // LOGIN
   // =========================================================
   const handleLogin = async (e) => {
@@ -140,7 +45,7 @@ export default function Login() {
 
       toast.success("Login successful 🎉");
 
-      navigateByRole(data.user);
+      navigateByRole(navigate, data.user);
     } catch (err) {
       const data = err.response?.data;
 

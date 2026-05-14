@@ -14,6 +14,7 @@ export default function DepartmentHeadRequestPage() {
   } = state || {};
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // ⭐ UI STATE CONTROL
   const [step, setStep] = useState("idle");
@@ -24,12 +25,14 @@ export default function DepartmentHeadRequestPage() {
   const sendRequest = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
 
-      await axiosInstance.post(
-        "/join/send-department-request",
-        { workspaceId, departmentId },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      console.log("Sending request with:", { workspaceId, departmentId });
+
+      await axiosInstance.post("/join/send-department-request", {
+        workspaceId,
+        departmentId,
+      });
 
       setStep("success");
 
@@ -37,11 +40,12 @@ export default function DepartmentHeadRequestPage() {
         navigate("/login");
       }, 2000);
     } catch (err) {
-      console.error(err);
+      console.error("Error details:", err?.response?.data || err.message);
+      setError(err?.response?.data?.message || err.message || "Request failed");
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, departmentId, navigate, token]);
+  }, [workspaceId, departmentId, navigate]);
 
   if (!workspaceId || !departmentId) {
     return (
@@ -103,6 +107,12 @@ export default function DepartmentHeadRequestPage() {
               Are you sure you want to send department request?
             </p>
 
+            {error && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
             <div className="flex gap-4 mt-8">
               <button
                 onClick={() => setStep("idle")}
@@ -114,7 +124,7 @@ export default function DepartmentHeadRequestPage() {
               <button
                 onClick={sendRequest}
                 disabled={loading}
-                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white"
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white disabled:opacity-50"
               >
                 {loading ? "Sending..." : "Confirm"}
               </button>

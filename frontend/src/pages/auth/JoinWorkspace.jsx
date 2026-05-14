@@ -262,8 +262,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../api/axiosInstance";
 import defaultworkspace from "../../assets/default-workspace.png";
-import { buildApiUrl } from "../../config/api";
-import { getWorkspaceLogo } from "../../utils/logoHelper";
 
 export default function JoinWorkspace() {
   const navigate = useNavigate();
@@ -335,7 +333,14 @@ export default function JoinWorkspace() {
     const status = (dept.status || "").toLowerCase();
 
     if (status === "active") {
-      // 🔹 Just select active department
+      if (dept.isFull) {
+        setError(
+          "This department has reached its staff capacity and cannot accept new requests.",
+        );
+        setSelectedDept(null);
+        return;
+      }
+
       setSelectedDept(dept);
       return;
     }
@@ -460,12 +465,24 @@ export default function JoinWorkspace() {
                           : "No Department Head Assigned"}
                       </p>
                       {status === "active" ? (
-                        <p className="text-xs text-blue-600 mt-1">
-                          Click to Join as Staff
-                        </p>
+                        dept.isFull ? (
+                          <p className="text-xs text-rose-600 mt-1">
+                            Staff capacity reached for this department.
+                          </p>
+                        ) : (
+                          <p className="text-xs text-blue-600 mt-1">
+                            Click to Join as Staff
+                          </p>
+                        )
                       ) : (
                         <p className="text-xs text-green-600 mt-1">
                           Become Department Head
+                        </p>
+                      )}
+                      {status === "active" && !dept.isFull && (
+                        <p className="text-[10px] text-slate-400 mt-1">
+                          {dept.currentEmployees}/{dept.employeesLimit} staff
+                          filled
                         </p>
                       )}
                     </button>
@@ -482,9 +499,14 @@ export default function JoinWorkspace() {
                     state: { department: selectedDept },
                   })
                 }
-                className="mt-4 w-full py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition"
+                disabled={selectedDept.isFull}
+                className={`mt-4 w-full py-2 rounded-xl text-white transition ${
+                  selectedDept.isFull
+                    ? "bg-slate-300 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
               >
-                Send Request
+                {selectedDept.isFull ? "Staff limit reached" : "Send Request"}
               </button>
             )}
 

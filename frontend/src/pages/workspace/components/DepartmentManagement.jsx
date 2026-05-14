@@ -1,6 +1,6 @@
 //frontend\src\pages\workspace\components\DepartmentManagement.jsx
 import React, { useState, useEffect } from "react";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, Edit } from "lucide-react";
 import StatusPill from "../../../components/StatusPill";
 import AddDepartmentModal from "./AddDepartmentModal";
 import axiosInstance from "../../../api/axiosInstance";
@@ -17,6 +17,7 @@ export default function DepartmentManagement({
     Array.isArray(data) ? data : [],
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editDepartment, setEditDepartment] = useState(null);
 
   // 🚀 Fetch departments only when workspaceId exists
   useEffect(() => {
@@ -87,43 +88,44 @@ export default function DepartmentManagement({
       {/* Department Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {displayedData.map((dept) => {
-          const headName =
-            dept.status === "pending"
-              ? "Not Assigned Yet"
-              : dept.status === "disabled"
-                ? "—"
-                : dept.head || "—";
-
           return (
             <div
               key={dept._id || dept.id}
               onClick={() => onView?.(dept)}
-              className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all"
+              className="group relative cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all"
             >
               <div className="flex items-start justify-between">
-                <div>
+                <div className="flex-1">
                   <h3 className="text-base font-semibold text-slate-900">
                     {dept.department}
                   </h3>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Head: {dept.headName || "Not Assigned"}
+                  </p>
                   <p className="text-sm text-slate-500 mt-1">
-                    {dept.role || "department_head"} —{" "}
-                    <span
-                      className={
-                        dept.status === "pending"
-                          ? "text-orange-700 font-medium"
-                          : "text-slate-700 font-medium"
-                      }
-                    >
-                      {headName}
-                    </span>
+                    Role: {dept.head || "department_head"}
                   </p>
                 </div>
                 <StatusPill status={dept.status} />
               </div>
 
-              <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
-                <Users className="h-4 w-4 text-slate-400" />
-                {dept.employeesLimit} Staff Limit{" "}
+              <div className="mt-4 flex items-center justify-between gap-2 text-sm text-slate-600">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-slate-400" />
+                  <span>{dept.employeesLimit} Staff Limit</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditDepartment(dept);
+                    setIsModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
+                >
+                  <Edit className="h-3.5 w-3.5" />
+                  Edit
+                </button>
               </div>
             </div>
           );
@@ -142,18 +144,74 @@ export default function DepartmentManagement({
       {/* Add Department Modal */}
       <AddDepartmentModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditDepartment(null);
+        }}
         workspace={{ id: workspaceId }}
+        mode={editDepartment ? "edit" : "create"}
+        initialValues={
+          editDepartment
+            ? {
+                departmentName: editDepartment.department,
+                hodRole: editDepartment.head,
+                employeesLimit: editDepartment.employeesLimit,
+                currentEmployees: editDepartment.currentEmployees || 0,
+              }
+            : undefined
+        }
+        title={editDepartment ? "Update Staff Limit" : "Add New Department"}
+        submitLabel={editDepartment ? "Update" : "Add Department"}
         onSubmit={async (formData) => {
           if (!workspaceId) {
-            alert("Workspace not found. Cannot create department.");
+            alert("Workspace not found. Cannot submit department form.");
             return;
+          }
+
+          if (editDepartment) {
+            try {
+              const response = await axiosInstance.patch(
+                `/departments/limit/${editDepartment._id}`,
+                {
+                  employeesLimit: Number(formData.employeesLimit),
+                },
+              );
+
+              const updatedLimit = response.data.department
+                ? response.data.department.employeesLimit
+                : Number(formData.employeesLimit);
+
+              setLocalDepartments((prev) =>
+                prev.map((dept) =>
+                  dept._id === editDepartment._id
+                    ? { ...dept, employeesLimit: updatedLimit }
+                    : dept,
+                ),
+              );
+              setDepartments?.((prev) =>
+                prev?.map((dept) =>
+                  dept._id === editDepartment._id
+                    ? { ...dept, employeesLimit: updatedLimit }
+                    : dept,
+                ),
+              );
+              setIsModalOpen(false);
+              setEditDepartment(null);
+              return {};
+            } catch (err) {
+              console.error(err);
+              return {
+                error:
+                  err.response?.data?.message ||
+                  "Staff limit update failed. Please try again.",
+              };
+            }
           }
 
           const payload = {
             department: formData.departmentName,
             head: formData.hodRole,
-            employeesLimit: Number(formData.employeesLimit), // ✅ correct
+            employeesLimit: Number(formData.employeesLimit),
             status: "disabled",
             workspaceId,
           };

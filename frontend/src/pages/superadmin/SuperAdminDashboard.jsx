@@ -4,9 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 import SidebarItem from "../../components/SidebarItem";
+import StatusPill from "../../components/StatusPill";
 import KpiCard from "../../components/KpiCard";
 import useAllWorkspaces from "../../hooks/useViewWorkspaces";
 import WorkspacesOverviewTable from "./components/WorkspacesOverviewTable";
+import WorkspaceEmployeesPanel from "./components/WorkspaceEmployeesPanel";
 import CustomBarChart from "../../components/BarChart";
 import CustomLineChart from "../../components/LineChart";
 import WorkspaceDetailModal from "./components/WorkspaceDetailModal";
@@ -21,6 +23,7 @@ import {
   FileBarChart2,
   ClipboardList,
   Settings,
+  Building2,
 } from "lucide-react";
 
 const employeesPerWorkspace = [
@@ -44,6 +47,7 @@ export default function SuperAdminDashboard() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const [openWorkspace, setOpenWorkspace] = useState(null);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
 
   const toggleDropdown = () => setOpen((prev) => !prev);
@@ -57,15 +61,112 @@ export default function SuperAdminDashboard() {
   const {
     workspaces,
     users,
+    departments,
+    staffs,
     loading,
     error,
     approveWorkspace,
     rejectWorkspace,
+    toggleWorkspaceStatus,
   } = useAllWorkspaces();
+
+  const selectedWorkspace = useMemo(
+    () => workspaces.find((w) => w._id === selectedWorkspaceId),
+    [workspaces, selectedWorkspaceId],
+  );
+
+  const workspaceUsers = useMemo(() => {
+    if (!selectedWorkspaceId) return [];
+
+    const workspaceDepartmentIds = departments
+      .filter((d) => String(d.workspaceId) === String(selectedWorkspaceId))
+      .map((d) => String(d._id));
+
+    const workspaceStaffIds = staffs
+      .filter((s) =>
+        workspaceDepartmentIds.includes(
+          String(s.departmentId?._id || s.departmentId || ""),
+        ),
+      )
+      .map((s) => String(s._id));
+
+    const departmentById = new Map(departments.map((d) => [String(d._id), d]));
+    const staffById = new Map(staffs.map((s) => [String(s._id), s]));
+
+    const uniqueUsers = new Map();
+
+    users.forEach((user) => {
+      const userDeptId =
+        user.departmentId?._id ||
+        (typeof user.departmentId === "string" ? user.departmentId : null);
+      const userStaffId =
+        user.staffId?._id ||
+        (typeof user.staffId === "string" ? user.staffId : null);
+
+      const staffRecord = userStaffId && staffById.get(String(userStaffId));
+      const staffDeptId =
+        staffRecord?.departmentId?._id ||
+        (typeof staffRecord?.departmentId === "string"
+          ? staffRecord.departmentId
+          : null);
+
+      const resolvedDeptId = userDeptId || staffDeptId;
+
+      const isDirect = String(user.workspaceId) === String(selectedWorkspaceId);
+      const isDepartment =
+        resolvedDeptId &&
+        workspaceDepartmentIds.includes(String(resolvedDeptId));
+      const isStaff =
+        userStaffId && workspaceStaffIds.includes(String(userStaffId));
+
+      if (isDirect || isDepartment || isStaff) {
+        const dept = departmentById.get(String(resolvedDeptId));
+        const displayRole = user.role || user.originalRole || "User";
+
+        uniqueUsers.set(user._id, {
+          ...user,
+          displayRole,
+          membershipType: isDirect
+            ? "Direct Workspace"
+            : isDepartment
+              ? "Department"
+              : "Staff",
+          departmentName:
+            dept?.name || dept?.department || dept?.departmentName || "N/A",
+          departmentInfo: dept
+            ? {
+                _id: String(dept._id),
+                name:
+                  dept.name || dept.department || dept.departmentName || "N/A",
+              }
+            : null,
+          staffName: staffRecord?.name || staffRecord?.staffName || "N/A",
+        });
+      }
+    });
+
+    return Array.from(uniqueUsers.values());
+  }, [selectedWorkspaceId, users, departments, staffs]);
+
+  // ── Fixed: selected workspace ke departments normalize karke pass karo ────
+  const selectedWorkspaceDepartments = useMemo(() => {
+    if (!selectedWorkspaceId) return [];
+    return departments
+      .filter(
+        (d) =>
+          String(d.workspaceId?._id || d.workspaceId) ===
+          String(selectedWorkspaceId),
+      )
+      .map((d) => ({
+        _id: String(d._id || d.id),
+        name:
+          d.name || d.department || d.departmentName || d.title || "Unnamed",
+        deptHeadId: String(d.deptHeadId || ""),
+      }));
+  }, [departments, selectedWorkspaceId]);
 
   const [workspaceLimit, setWorkspaceLimit] = useState(10);
 
-  // ✅ Hooks ALWAYS here (no condition)
   const overviewWorkspaces = useMemo(() => {
     return Array.isArray(workspaces) ? workspaces.slice(0, 5) : [];
   }, [workspaces]);
@@ -83,7 +184,6 @@ export default function SuperAdminDashboard() {
     [workspaces],
   );
 
-  // ✅ Ab returns
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white">
@@ -91,11 +191,9 @@ export default function SuperAdminDashboard() {
           <div className="absolute w-20 h-20 bg-purple-200 blur-2xl rounded-full animate-pulse"></div>
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin relative"></div>
         </div>
-
         <p className="mt-6 text-lg font-semibold text-gray-800">
           Loading Dashboard
         </p>
-
         <p className="text-xs text-gray-400 mt-1">Please wait...</p>
       </div>
     );
@@ -105,7 +203,6 @@ export default function SuperAdminDashboard() {
   const totalWorkspaces = workspaces?.length || 0;
 
   const totalAdmins = workspaces?.reduce((acc, w) => {
-    // unique admin count
     return acc + (w.createdBy ? 1 : 0);
   }, 0);
 
@@ -114,7 +211,6 @@ export default function SuperAdminDashboard() {
   const pendingApprovals =
     workspaces?.filter((w) => w.status === "pending")?.length || 0;
 
-  // ✅ KpiCards define karna
   const kpiCards = [
     {
       title: "Total Workspaces",
@@ -180,49 +276,42 @@ export default function SuperAdminDashboard() {
                   active={activePage === "dashboard"}
                   onClick={() => setActivePage("dashboard")}
                 />
-
                 <SidebarItem
                   icon={Boxes}
                   label="Workspaces"
                   active={activePage === "workspaces"}
                   onClick={() => setActivePage("workspaces")}
                 />
-
                 <SidebarItem
                   icon={CheckSquare}
                   label="Approvals"
                   active={activePage === "approvals"}
                   onClick={() => setActivePage("approvals")}
                 />
-
                 <SidebarItem
                   icon={Shield}
-                  label="Admin Management"
-                  active={activePage === "admins"}
-                  onClick={() => setActivePage("admins")}
+                  label="Workspace Management"
+                  active={activePage === "Manage_Workspaces"}
+                  onClick={() => setActivePage("Manage_Workspaces")}
                 />
-
                 <SidebarItem
                   icon={Users}
                   label="Employees"
                   active={activePage === "employees"}
                   onClick={() => setActivePage("employees")}
                 />
-
                 <SidebarItem
                   icon={FileBarChart2}
                   label="Reports"
                   active={activePage === "reports"}
                   onClick={() => setActivePage("reports")}
                 />
-
                 <SidebarItem
                   icon={ClipboardList}
                   label="Logs / Audit"
                   active={activePage === "logs"}
                   onClick={() => setActivePage("logs")}
                 />
-
                 <SidebarItem
                   icon={Settings}
                   label="System Settings"
@@ -233,16 +322,15 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
         </aside>
-        {/* Overlay for mobile when sidebar is open */}
+
         {showSidebar && (
           <div
             className="fixed inset-0 z-40 bg-black/30 md:hidden"
             onClick={() => setShowSidebar(false)}
           />
         )}
-        {/* Main Content */}
+
         <main className="flex-1 min-w-0">
-          {/* Topbar (same) */}
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
@@ -258,7 +346,7 @@ export default function SuperAdminDashboard() {
                 className="md:hidden flex flex-col justify-center gap-1 p-2 rounded-md hover:bg-slate-200 transition"
                 onClick={() => setShowSidebar((prev) => !prev)}
               >
-                 <span className="block w-6 h-0.5 bg-blue-500"></span>
+                <span className="block w-6 h-0.5 bg-blue-500"></span>
                 <span className="block w-6 h-0.5 bg-blue-500"></span>
                 <span className="block w-6 h-0.5 bg-blue-500"></span>
               </button>
@@ -300,9 +388,7 @@ export default function SuperAdminDashboard() {
                     >
                       Profile View
                     </button>
-
                     <div className="h-px bg-slate-100" />
-
                     <button
                       onClick={handleLogout}
                       className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 transition"
@@ -315,25 +401,20 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
 
-          {/* ========================= */}
           {/* DASHBOARD PAGE */}
-          {/* ========================= */}
           {activePage === "dashboard" && (
             <>
-              {/* KPI Cards */}
               <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {kpiCards.map((c) => (
                   <KpiCard key={c.title} {...c} />
                 ))}
               </section>
 
-              {/* Charts */}
               <section className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <h2 className="text-base font-semibold text-slate-900">
                     Employees per Workspace
                   </h2>
-
                   <CustomBarChart
                     data={employeesPerWorkspace}
                     xKey="name"
@@ -345,7 +426,6 @@ export default function SuperAdminDashboard() {
                   <h2 className="text-base font-semibold text-slate-900">
                     Monthly Growth
                   </h2>
-
                   <CustomLineChart
                     data={monthlyGrowth}
                     lines={[
@@ -355,7 +435,7 @@ export default function SuperAdminDashboard() {
                   />
                 </div>
               </section>
-              {/* Workspaces Overview (ONLY 5) */}
+
               <WorkspacesOverviewTable
                 title="Workspaces Overview"
                 workspaces={overviewWorkspaces}
@@ -374,14 +454,12 @@ export default function SuperAdminDashboard() {
             </>
           )}
 
-          {/* ========================= */}
           {/* WORKSPACES PAGE */}
-          {/* ========================= */}
           {activePage === "workspaces" && (
             <>
               <WorkspacesOverviewTable
                 title="Active Workspaces"
-                workspaces={activeWorkspaces} // ✅ only active
+                workspaces={activeWorkspaces}
                 approveWorkspace={approveWorkspace}
                 rejectWorkspace={rejectWorkspace}
                 openWorkspace={openWorkspace}
@@ -390,8 +468,6 @@ export default function SuperAdminDashboard() {
                 WorkspaceDetailModal={WorkspaceDetailModal}
                 apiBaseUrl="http://localhost:5000"
               />
-
-              {/* Show More */}
               {workspaces.length > workspaceLimit && (
                 <div className="mt-4 flex justify-center">
                   <button
@@ -404,13 +480,12 @@ export default function SuperAdminDashboard() {
               )}
             </>
           )}
-          {/* ========================= */}
-          {/* Aprovals PAGE */}
-          {/* ========================= */}
+
+          {/* APPROVALS PAGE */}
           {activePage === "approvals" && (
             <WorkspacesOverviewTable
               title="Pending Approvals"
-              workspaces={pendingWorkspaces} // ✅ only pending
+              workspaces={pendingWorkspaces}
               approveWorkspace={approveWorkspace}
               rejectWorkspace={rejectWorkspace}
               openWorkspace={openWorkspace}
@@ -421,10 +496,40 @@ export default function SuperAdminDashboard() {
             />
           )}
 
-          {/* Baaki pages future me */}
+          {/* MANAGE WORKSPACES PAGE */}
+          {activePage === "Manage_Workspaces" && (
+            <WorkspacesOverviewTable
+              title="Workspace Management"
+              workspaces={workspaces}
+              toggleWorkspaceStatus={toggleWorkspaceStatus}
+              approveWorkspace={approveWorkspace}
+              rejectWorkspace={rejectWorkspace}
+              openWorkspace={openWorkspace}
+              setOpenWorkspace={setOpenWorkspace}
+              onCloseModal={() => setOpenWorkspace(null)}
+              WorkspaceDetailModal={WorkspaceDetailModal}
+              apiBaseUrl="http://localhost:5000"
+            />
+          )}
+
+          {/* EMPLOYEES PAGE */}
+          {activePage === "employees" && (
+            <WorkspaceEmployeesPanel
+              workspaces={workspaces}
+              selectedWorkspaceId={selectedWorkspaceId}
+              setSelectedWorkspaceId={setSelectedWorkspaceId}
+              selectedWorkspace={selectedWorkspace}
+              workspaceUsers={workspaceUsers}
+              loadingUsers={loading}
+              // ── Fixed: normalized departments with name field ──
+              uniqueDepartments={selectedWorkspaceDepartments}
+            />
+          )}
+
           {activePage !== "dashboard" &&
             activePage !== "workspaces" &&
-            activePage !== "approvals" && (
+            activePage !== "approvals" &&
+            activePage !== "employees" && (
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <p className="text-sm text-slate-600">
                   This section will be implemented soon.

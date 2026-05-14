@@ -8,6 +8,8 @@ import axiosInstance from "../../api/axiosInstance";
 import SidebarItem from "../../components/SidebarItem";
 import KpiCard from "../../components/KpiCard";
 import ProfileView from "../../components/ProfileView";
+import WorkspaceUsersSection from "../department/components/WorkspaceUsersSection";
+import ReportTableSection from "../department/components/ReportTableSection";
 import CustomLineChart from "../../components/LineChart";
 import Attendance from "../../components/Attendance";
 import { getWorkspaceLogo } from "../../utils/logoHelper";
@@ -48,6 +50,7 @@ export default function HR_StaffDashboard() {
     useState("all");
   const [selectedUserDetails, setSelectedUserDetails] = useState(null);
   const [activeUserGroup, setActiveUserGroup] = useState("staff");
+  const [activeReportGroup, setActiveReportGroup] = useState("all");
 
   const attendanceData = [
     { month: "Jan", attendance: 85 },
@@ -169,14 +172,30 @@ export default function HR_StaffDashboard() {
   );
 
   // ✅ Unique departments — departmentInfo se (staff ke liye staffDepartment resolve ho chuka hai backend mein)
+  const getDepartmentId = (u) =>
+    u.departmentInfo?._id ||
+    u.departmentId?._id ||
+    (typeof u.departmentId === "string" ? u.departmentId : null);
+
+  const getDepartmentName = (u) =>
+    u.departmentInfo?.name ||
+    u.departmentInfo?.department ||
+    u.departmentInfo?.departmentName ||
+    u.departmentId?.name ||
+    u.departmentId?.department ||
+    u.departmentId?.departmentName ||
+    u.departmentName ||
+    null;
+
   const uniqueDepartments = Array.from(
     new Map(
       staffUsers
-        .filter((u) => u.departmentInfo?._id)
-        .map((u) => [
-          String(u.departmentInfo._id),
-          { _id: String(u.departmentInfo._id), name: u.departmentInfo.name },
-        ]),
+        .map((u) => {
+          const id = getDepartmentId(u);
+          const name = getDepartmentName(u);
+          return id && name ? [String(id), { _id: String(id), name }] : null;
+        })
+        .filter(Boolean),
     ).values(),
   );
 
@@ -187,7 +206,7 @@ export default function HR_StaffDashboard() {
       u.email?.toLowerCase().includes(staffSearch.toLowerCase());
     const matchesDepartment =
       selectedDepartmentFilter === "all" ||
-      String(u.departmentInfo?._id) === selectedDepartmentFilter;
+      String(getDepartmentId(u)) === selectedDepartmentFilter;
     return matchesSearch && matchesDepartment;
   });
 
@@ -509,187 +528,30 @@ export default function HR_StaffDashboard() {
 
           {/* Employees Page */}
           {activePage === "employees" && (
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="border-b border-slate-100 px-6 py-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-base font-semibold text-slate-900">
-                      Workspace Staff
-                    </h2>
-                    <p className="mt-0.5 text-sm text-slate-500">
-                      View staff details.
-                    </p>
-                  </div>
-                  <div className="flex gap-1.5 rounded-xl border border-slate-200 bg-slate-50 p-1">
-                    <button className="rounded-lg bg-white px-4 py-1.5 text-sm font-medium text-blue-600 shadow-sm ring-1 ring-slate-200">
-                      Staff
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6">
-                <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr]">
-                  {/* Left Panel */}
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-                    <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-400">
-                      Staff Members
-                    </p>
-
-                    {/* ✅ Search + Department Filter */}
-                    <div className="mb-4 space-y-2">
-                      <input
-                        type="text"
-                        placeholder="Search by name or email..."
-                        value={staffSearch}
-                        onChange={(e) => {
-                          setStaffSearch(e.target.value);
-                          setSelectedUserDetails(null);
-                        }}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                      />
-                      <select
-                        value={selectedDepartmentFilter}
-                        onChange={(e) => {
-                          setSelectedDepartmentFilter(e.target.value);
-                          setSelectedUserDetails(null);
-                        }}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                      >
-                        <option value="all">All Departments</option>
-                        {uniqueDepartments.map((dept) => (
-                          <option key={dept._id} value={dept._id}>
-                            {dept.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* ✅ Results count */}
-                    <p className="mb-2 text-xs text-slate-400">
-                      {filteredStaffUsers.length} user
-                      {filteredStaffUsers.length !== 1 ? "s" : ""} found
-                    </p>
-
-                    {filteredStaffUsers.length === 0 ? (
-                      <p className="py-4 text-center text-sm text-slate-400">
-                        No staff users found.
-                      </p>
-                    ) : (
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {filteredStaffUsers.map((u) => (
-                          <div
-                            key={u._id}
-                            onClick={() => setSelectedUserDetails(u)}
-                            className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all hover:shadow-sm ${
-                              selectedUserDetails?._id === u._id
-                                ? "border-blue-200 bg-blue-50"
-                                : "border-slate-200 bg-white hover:border-slate-300"
-                            }`}
-                          >
-                            <div
-                              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full"
-                              style={{
-                                background: u.profileImage
-                                  ? "transparent"
-                                  : "#7c3aed",
-                              }}
-                            >
-                              {u.profileImage ? (
-                                <img
-                                  src={u.profileImage}
-                                  alt={u.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <span className="text-sm font-semibold text-white">
-                                  {u.name?.charAt(0).toUpperCase()}
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-slate-900">
-                                {u.name}
-                              </p>
-                              <p className="truncate text-xs text-slate-500">
-                                {u.email}
-                              </p>
-                              {/* ✅ Department name from departmentInfo */}
-                              {u.departmentInfo?.name && (
-                                <p className="truncate text-xs text-slate-400">
-                                  {u.departmentInfo.name}
-                                </p>
-                              )}
-                            </div>
-
-                            {selectedUserDetails?._id === u._id && (
-                              <div className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right Panel — Staff Detail */}
-                  {selectedUserDetails && (
-                    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                      <p className="mb-5 text-xs font-semibold uppercase tracking-widest text-slate-400">
-                        Staff Detail
-                      </p>
-
-                      <div className="flex flex-col items-center gap-4 text-center">
-                        <div
-                          className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full ring-4 ring-purple-50"
-                          style={{
-                            background: selectedUserDetails.profileImage
-                              ? "transparent"
-                              : "#7c3aed",
-                          }}
-                        >
-                          {selectedUserDetails.profileImage ? (
-                            <img
-                              src={selectedUserDetails.profileImage}
-                              alt={selectedUserDetails.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-2xl font-semibold text-white">
-                              {selectedUserDetails.name
-                                ?.charAt(0)
-                                .toUpperCase() || "U"}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="w-full space-y-1">
-                          <p className="text-base font-semibold text-slate-900">
-                            {selectedUserDetails.name}
-                          </p>
-                          <p className="text-sm text-slate-500">
-                            {selectedUserDetails.email}
-                          </p>
-                          <span className="inline-block rounded-full bg-blue-50 px-3 py-0.5 text-xs font-medium text-blue-600">
-                            {selectedUserDetails.role}
-                          </span>
-                        </div>
-
-                        {/* ✅ Department from departmentInfo */}
-                        {selectedUserDetails.departmentInfo?.name && (
-                          <div className="w-full rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
-                            <p className="text-xs text-slate-400">Department</p>
-                            <p className="mt-0.5 text-sm font-medium text-slate-700">
-                              {selectedUserDetails.departmentInfo.name}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <WorkspaceUsersSection
+              title="Workspace Staff"
+              subtitle="View staff details."
+              groupOptions={[{ id: "staff", label: "Staff" }]}
+              activeUserGroup={activeUserGroup}
+              onGroupChange={setActiveUserGroup}
+              loadingUsers={false}
+              workspaceAdminUser={null}
+              departmentHeadUsers={[]}
+              filteredStaffUsers={filteredStaffUsers}
+              selectedUserDetails={selectedUserDetails}
+              setSelectedUserDetails={setSelectedUserDetails}
+              staffSearch={staffSearch}
+              onStaffSearchChange={(value) => {
+                setStaffSearch(value);
+                setSelectedUserDetails(null);
+              }}
+              selectedDepartmentFilter={selectedDepartmentFilter}
+              onDepartmentFilterChange={(value) => {
+                setSelectedDepartmentFilter(value);
+                setSelectedUserDetails(null);
+              }}
+              uniqueDepartments={uniqueDepartments}
+            />
           )}
 
           {activePage === "settings" && (
@@ -740,94 +602,23 @@ export default function HR_StaffDashboard() {
           )}
 
           {activePage === "reports" && (
-            <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    My Assigned Reports
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    This list is distributed across HR staff by load.
-                  </p>
-                </div>
-              </div>
-
-              {loadingReports ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 4 }).map((_, idx) => (
-                    <div
-                      key={idx}
-                      className="h-16 rounded-2xl bg-slate-100 animate-pulse"
-                    />
-                  ))}
-                </div>
-              ) : reportItems.length === 0 ? (
-                <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-                  No assigned attendance reports available.
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm text-left">
-                    <thead className="bg-slate-100">
-                      <tr>
-                        <th className="px-4 py-3 font-semibold text-slate-700">
-                          Date
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-slate-700">
-                          Employee
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-slate-700">
-                          Report
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-slate-700">
-                          Status
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-slate-700">
-                          Action
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reportItems.map((item) => (
-                        <tr
-                          key={item._id}
-                          className="border-t border-slate-200"
-                        >
-                          <td className="px-4 py-4 text-slate-600">
-                            {new Date(item.date).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-4 text-slate-600">
-                            {item.user?.name || item.user?.email || "Unknown"}
-                          </td>
-                          <td className="px-4 py-4 text-slate-600 max-w-[320px] overflow-hidden text-ellipsis whitespace-nowrap">
-                            {item.report}
-                          </td>
-                          <td className="px-4 py-4 text-slate-600">
-                            <span className="inline-flex rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800">
-                              Pending
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-slate-600 space-x-2">
-                            <button
-                              onClick={() => handleApproveReport(item._id)}
-                              className="rounded-2xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleRejectReport(item._id)}
-                              className="rounded-2xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-700"
-                            >
-                              Reject
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+            <ReportTableSection
+              title="My Assigned Reports"
+              subtitle="This list is distributed across HR staff by load."
+              loadingReports={loadingReports}
+              reportItems={reportItems}
+              onApproveReport={handleApproveReport}
+              onRejectReport={handleRejectReport}
+              emptyMessage="No assigned attendance reports available."
+              groupOptions={[
+                { id: "all", label: "All" },
+                { id: "workspaceAdmin", label: "Admin" },
+                { id: "departmentHead", label: "Dept. Heads" },
+                { id: "staff", label: "Staff" },
+              ]}
+              activeGroup={activeReportGroup}
+              onGroupChange={setActiveReportGroup}
+            />
           )}
 
           {showProfile && (

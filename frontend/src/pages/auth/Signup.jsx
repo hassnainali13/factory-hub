@@ -11,15 +11,78 @@ export default function UserSignup() {
     name: "",
     email: "",
     password: "",
+    confirmPassword: "", // 🔥 NEW
   });
 
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false); // 🔥 NEW
+  const [passwordError, setPasswordError] = useState(""); // 🔥 NEW
+  const [isPasswordStrong, setIsPasswordStrong] = useState(false); // 🔥 NEW
+  const [passwordStrength, setPasswordStrength] = useState(""); // 🔥 NEW: weak, fair, good, strong
+  const [confirmPasswordError, setConfirmPasswordError] = useState(""); // 🔥 NEW
+  const [isPasswordsMatch, setIsPasswordsMatch] = useState(false); // 🔥 NEW
+
+  // 🔥 Password strength validation function
+  const validatePassword = (password) => {
+    if (password.length < 8)
+      return "Password must be at least 8 characters long.";
+    if (!/[A-Z]/.test(password))
+      return "Password must include at least one uppercase letter.";
+    if (!/[a-z]/.test(password))
+      return "Password must include at least one lowercase letter.";
+    if (!/\d/.test(password))
+      return "Password must include at least one number.";
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password))
+      return "Password must include at least one special character.";
+    return null; // Strong password
+  };
+
+  // 🔥 Get password strength level
+  const getPasswordStrength = (password) => {
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score++;
+
+    if (score <= 2) return "weak";
+    if (score <= 3) return "fair";
+    if (score <= 4) return "good";
+    return "strong";
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+
+    // 🔥 Validate password strength on change
+    if (e.target.name === "password") {
+      const error = validatePassword(e.target.value);
+      setPasswordError(error);
+      setIsPasswordStrong(!error);
+      setPasswordStrength(getPasswordStrength(e.target.value));
+      // Also check confirm password match
+      if (form.confirmPassword && e.target.value !== form.confirmPassword) {
+        setConfirmPasswordError("Passwords do not match.");
+        setIsPasswordsMatch(false);
+      } else if (form.confirmPassword) {
+        setConfirmPasswordError("");
+        setIsPasswordsMatch(true);
+      }
+    }
+
+    // 🔥 Validate confirm password match
+    if (e.target.name === "confirmPassword") {
+      if (e.target.value !== form.password) {
+        setConfirmPasswordError("Passwords do not match.");
+        setIsPasswordsMatch(false);
+      } else {
+        setConfirmPasswordError("");
+        setIsPasswordsMatch(true);
+      }
+    }
   };
 
   // =========================
@@ -29,6 +92,22 @@ export default function UserSignup() {
     e.preventDefault();
     setLoading(true);
 
+    // 🔥 Additional check for password strength
+    if (!isPasswordStrong) {
+      toast.error(
+        "Please ensure your password meets the strength requirements.",
+      );
+      setLoading(false);
+      return;
+    }
+
+    // 🔥 Additional check for password match
+    if (!isPasswordsMatch) {
+      toast.error("Passwords do not match.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/api/auth/register`,
@@ -36,7 +115,7 @@ export default function UserSignup() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...form, role: "user" }),
-        }
+        },
       );
 
       const data = await res.json();
@@ -73,7 +152,7 @@ export default function UserSignup() {
             email: form.email,
             otp,
           }),
-        }
+        },
       );
 
       const data = await res.json();
@@ -164,10 +243,70 @@ export default function UserSignup() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {/* 🔥 Password strength error message */}
+              {passwordError && (
+                <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+              )}
+              {/* 🔥 Password strength level bar */}
+              {form.password && (
+                <div className="mt-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-slate-600">Strength:</span>
+                    <span
+                      className={`text-xs font-medium ${
+                        passwordStrength === "weak"
+                          ? "text-red-600"
+                          : passwordStrength === "fair"
+                            ? "text-yellow-600"
+                            : passwordStrength === "good"
+                              ? "text-blue-600"
+                              : "text-green-600"
+                      }`}
+                    >
+                      {passwordStrength.charAt(0).toUpperCase() +
+                        passwordStrength.slice(1)}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2 mt-1">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        passwordStrength === "weak"
+                          ? "bg-red-500 w-1/4"
+                          : passwordStrength === "fair"
+                            ? "bg-yellow-500 w-2/4"
+                            : passwordStrength === "good"
+                              ? "bg-blue-500 w-3/4"
+                              : "bg-green-500 w-full"
+                      }`}
+                    ></div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                Confirm Password
+              </label>
+              <input
+                name="confirmPassword"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                type="password"
+                placeholder="Confirm your password"
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
+                required
+              />
+              {/* 🔥 Confirm password error message */}
+              {confirmPasswordError && (
+                <p className="mt-1 text-sm text-red-600">
+                  {confirmPasswordError}
+                </p>
+              )}
             </div>
 
             <button
-              disabled={loading}
+              disabled={loading || !isPasswordStrong || !isPasswordsMatch}
               className="w-full rounded-xl bg-blue-600 text-white py-2.5 text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60"
             >
               {loading ? "Creating..." : "Create Employee Account"}

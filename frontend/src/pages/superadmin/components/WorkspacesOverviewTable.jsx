@@ -9,6 +9,7 @@ const WorkspacesOverviewTable = ({
   onViewAll,
   approveWorkspace,
   rejectWorkspace,
+  toggleWorkspaceStatus,
   setOpenWorkspace,
   openWorkspace,
   onCloseModal,
@@ -75,7 +76,7 @@ const WorkspacesOverviewTable = ({
                       {w.createdBy?.name || "N/A"}
                     </td>
                     <td className="py-4 text-sm text-slate-600">
-                      {w.employees || 0}
+                      {w.employeeCount || 0}
                     </td>
                     <td className="py-4">
                       <StatusPill status={w.status} />
@@ -97,7 +98,26 @@ const WorkspacesOverviewTable = ({
                           </button>
                         </div>
                       )}
-                      {status === "active" && (
+
+                      {status === "active" && toggleWorkspaceStatus && (
+                        <button
+                          onClick={() => toggleWorkspaceStatus?.(w._id, status)}
+                          className="px-3 py-1 text-sm font-medium bg-rose-100 text-rose-800 rounded-lg hover:bg-rose-200 transition"
+                        >
+                          Disable
+                        </button>
+                      )}
+
+                      {status === "disabled" && toggleWorkspaceStatus && (
+                        <button
+                          onClick={() => toggleWorkspaceStatus?.(w._id, status)}
+                          className="px-3 py-1 text-sm font-medium bg-emerald-100 text-emerald-800 rounded-lg hover:bg-emerald-200 transition"
+                        >
+                          Enable
+                        </button>
+                      )}
+
+                      {!toggleWorkspaceStatus && status === "active" && (
                         <button
                           onClick={() => {
                             if (!setOpenWorkspace) return;

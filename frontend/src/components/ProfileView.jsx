@@ -4,15 +4,14 @@ import ProfileImage from "./ProfileImage";
 import useUserProfile from "../hooks/useUserProfile";
 import ImageCropper from "./ImageCropper";
 import { getCroppedImg } from "../utils/cropImage";
-import {  Edit2 } from "lucide-react";
-
+import { Edit2 } from "lucide-react";
 
 const ProfileView = () => {
   const { user, userName, userEmail, role, updateProfileImage } =
     useUserProfile();
 
   const [profileImage, setProfileImage] = useState(
-    "/images/default-profile.png"
+    "/images/default-profile.png",
   );
   const [uploading, setUploading] = useState(false);
 
@@ -38,10 +37,7 @@ const ProfileView = () => {
   // 👉 STEP 2: crop and upload
   const handleCropDone = async (croppedAreaPixels) => {
     try {
-      const croppedBlob = await getCroppedImg(
-        selectedImage,
-        croppedAreaPixels
-      );
+      const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels);
 
       const formData = new FormData();
       formData.append("profile", croppedBlob);
@@ -98,11 +94,13 @@ const ProfileView = () => {
 
         <div className="w-full space-y-3">
           <div className="flex justify-between p-3 bg-white rounded-xl">
-            <span>Email</span>
-            <span>{userEmail}</span>
+            <span className="flex-shrink-0">Email</span>
+            <span className="truncate text-right max-w-[200px]">
+              {userEmail}
+            </span>
           </div>
           <div className="flex justify-between p-3 bg-white rounded-xl">
-            <span>Role</span>
+            <span className="flex-shrink-0">Role</span>
             <span>{role}</span>
           </div>
         </div>
