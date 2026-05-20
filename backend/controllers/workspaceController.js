@@ -64,7 +64,30 @@ exports.createWorkspace = async (req, res) => {
     user.role = userRole;
     await user.save();
 
+<<<<<<< HEAD
+    // 9️⃣ Notify superadmin
+    const {
+      createNotification,
+    } = require("../controllers/notificationController");
+    await createNotification(
+      "new_workspace_request",
+      "New Workspace Request",
+      `${user.name} (${userRole}) requested workspace '${workspaceName}' (${workspaceCode}) approval.`,
+      {
+        workspaceId: workspace._id,
+        workspaceName: workspace.name,
+        workspaceLogo: workspace.logo,
+        userId: req.userId,
+        userName: user.name,
+        userRole: userRole,
+        isSystem: true,
+      },
+    );
+
+    // 🔟 Send response
+=======
     // 9️⃣ Send response
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
     const workspaceObj = workspace.toObject();
     res.status(201).json({
       message: "Workspace created successfully and role assigned to user",
@@ -143,10 +166,41 @@ exports.joinWorkspace = async (req, res) => {
     }
 
     // Update user's role to "user" and link them to the workspace
+<<<<<<< HEAD
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        role: "user", // Set user role to user when joining workspace
+        workspaceId: workspace._id,
+      },
+      { new: true },
+    ).select("name role");
+
+    const {
+      createNotification,
+    } = require("../controllers/notificationController");
+    if (user) {
+      await createNotification(
+        "workspace_joined",
+        "Welcome to the Workspace",
+        `Welcome ${user.name}! You have successfully joined '${workspace.name}'. Start exploring your dashboard.`,
+        {
+          workspaceId: workspace._id,
+          workspaceName: workspace.name,
+          workspaceLogo: workspace.logo,
+          userId: user._id,
+          userName: user.name,
+          userRole: user.role || "user",
+          recipients: [user._id],
+        },
+      );
+    }
+=======
     await User.findByIdAndUpdate(userId, {
       role: "user", // Set user role to user when joining workspace
       workspaceId: workspace._id,
     });
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
 
     res.status(200).json({
       message: "Joined workspace successfully",

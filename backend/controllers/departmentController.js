@@ -2,6 +2,10 @@
 const User = require("../models/User");
 const Department = require("../models/Department");
 const Staff = require("../models/Staff");
+<<<<<<< HEAD
+const Workspace = require("../models/Workspace");
+=======
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
 // ✅ Get departments by workspace
 exports.getDepartments = async (req, res) => {
   try {
@@ -195,6 +199,33 @@ exports.approveHeadRequest = async (req, res) => {
     user.role = department.head || "department_head";
     await user.save();
 
+<<<<<<< HEAD
+    // Send welcome notification to the newly approved department head
+    try {
+      const {
+        createNotification,
+      } = require("../controllers/notificationController");
+      await createNotification(
+        "department_head_approved",
+        "Department Head Approved",
+        `Congratulations ${user.name}! You are now the head of ${department.department || department.name}.`,
+        {
+          // Do NOT set workspaceId here — this notification should show only
+          // on the department/head dashboard, not on workspace dashboards.
+          departmentId: department._id,
+          departmentName: department.department || department.name,
+          userId: user._id,
+          userName: user.name,
+          userRole: user.role,
+          recipients: [user._id],
+        },
+      );
+    } catch (notifErr) {
+      console.error("Department welcome notification error:", notifErr.message);
+    }
+
+=======
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
     if (!department)
       return res.status(404).json({ message: "Department not found" });
 

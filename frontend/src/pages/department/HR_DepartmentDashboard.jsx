@@ -31,6 +31,8 @@ import {
   Settings,
   Boxes,
 } from "lucide-react";
+import useNotifications from "../../hooks/useNotifications";
+import NotificationDropdown from "../../components/NotificationDropdown";
 
 export default function DepartmentHeadDashboard() {
   const { userName, userEmail, role, userInitial, user } = useUserProfile();
@@ -44,6 +46,9 @@ export default function DepartmentHeadDashboard() {
   const [activePage, setActivePage] = useState("dashboard");
   const [showSidebar, setShowSidebar] = useState(false);
   const [profileImage, setProfileImage] = useState("");
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const { notifications, unreadCount, markAsRead } = useNotifications();
   const [allUsers, setAllUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [reportItems, setReportItems] = useState([]);
@@ -440,9 +445,26 @@ export default function DepartmentHeadDashboard() {
                 <span className="block w-6 h-0.5 bg-blue-500"></span>
               </button>
 
-              <button className="grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition">
-                <Bell className="h-4 w-4 text-slate-700" />
-              </button>
+              <div className="relative">
+                <button
+                  className="grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition"
+                  onClick={() => setShowNotifications((p) => !p)}
+                >
+                  <Bell className="h-4 w-4 text-slate-700" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+                <NotificationDropdown
+                  showNotifications={showNotifications}
+                  setShowNotifications={setShowNotifications}
+                  notifications={notifications}
+                  unreadCount={unreadCount}
+                  markAsRead={markAsRead}
+                />
+              </div>
 
               <div
                 ref={dropdownRef}

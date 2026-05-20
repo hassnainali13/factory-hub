@@ -22,18 +22,22 @@ export default function AddDepartmentModal({
       ? Number(initialValues.currentEmployees)
       : 1;
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isOpen) return;
 
-    setDepartmentName(initialValues.departmentName || "");
-    setHodRole(initialValues.hodRole || "");
+    const {
+      departmentName = "",
+      hodRole = "",
+      employeesLimit = "",
+    } = initialValues || {};
+
+    setDepartmentName(departmentName);
+    setHodRole(hodRole);
     setEmployeesLimit(
-      initialValues.employeesLimit !== undefined
-        ? String(initialValues.employeesLimit)
-        : "",
+      employeesLimit !== undefined ? String(employeesLimit) : "",
     );
     setErrors({});
-  }, [isOpen, initialValues]);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -180,7 +184,7 @@ export default function AddDepartmentModal({
             />
             {mode === "edit" && (
               <p className="mt-1 text-xs text-slate-500">
-                 {minLimit} approved staff
+                {minLimit} approved staff
               </p>
             )}
             {errors.employeesLimit && (

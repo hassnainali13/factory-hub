@@ -18,6 +18,8 @@ import DepartmentDetailModal from "./components/DepartmentDetailModal"; // Updat
 import { getWorkspaceLogo } from "../../utils/logoHelper";
 import Attendance from "../../components/Attendance";
 import Setting from "./components/CustomSettingsForWorkspace";
+import useNotifications from "../../hooks/useNotifications";
+import NotificationDropdown from "../../components/NotificationDropdown";
 
 import {
   Bell,
@@ -90,6 +92,9 @@ export default function WorkspaceManagerDashboard() {
     }
   }, [user]);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const { notifications, unreadCount, markAsRead } = useNotifications();
 
   const [departments, setDepartments] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -405,9 +410,26 @@ ${showSidebar ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
                 />
               </div>
 
-              <button className="grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors">
-                <Bell className="h-4 w-4" />
-              </button>
+              <div className="relative">
+                <button
+                  className="grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+                  onClick={() => setShowNotifications((prev) => !prev)}
+                >
+                  <Bell className="h-4 w-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+                <NotificationDropdown
+                  showNotifications={showNotifications}
+                  setShowNotifications={setShowNotifications}
+                  notifications={notifications}
+                  unreadCount={unreadCount}
+                  markAsRead={markAsRead}
+                />
+              </div>
 
               <div
                 ref={dropdownRef}

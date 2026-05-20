@@ -18,6 +18,10 @@ const userRoutes = require("./routes/userRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
 const attendanceTimeConfigRoutes = require("./routes/attendanceTimeConfigRoutes");
 const hrDepartmentRoutes = require("./routes/hr_departmentRoutes");
+<<<<<<< HEAD
+const notificationRoutes = require("./routes/notificationRoutes");
+=======
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
 
 const User = require("./models/User");
 
@@ -53,13 +57,18 @@ async function loadModels() {
 // =============================
 // ✅ MIDDLEWARE
 // =============================
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], // ✅ add PATCH
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    callback(null, true);
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: "10mb" }));
 
 app.use("/uploads", express.static("uploads"));
@@ -68,6 +77,7 @@ app.use("/ProfileImage", express.static("ProfileImage"));
 // =============================
 // ✅ AUTH MIDDLEWARE
 // =============================
+
 const authenticateToken = (req, res, next) => {
   const token = req.header("Authorization")?.split(" ")[1];
 
@@ -89,6 +99,7 @@ const authenticateToken = (req, res, next) => {
 // =============================
 // ✅ ROUTES
 // =============================
+
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/superadmin", superAdminRoutes);
@@ -98,10 +109,15 @@ app.use("/api/users", userRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/attendance-time-config", attendanceTimeConfigRoutes);
 app.use("/api/hr-department", hrDepartmentRoutes);
+<<<<<<< HEAD
+app.use("/api/notifications", notificationRoutes);
+=======
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
 
 // =============================
 // ✅ AUTH USER ROUTE
 // =============================
+
 app.get("/api/auth/me", authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).populate({
@@ -119,12 +135,32 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
   }
 });
 
+// JSON 404 handler for unknown API routes
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+// JSON error handler
+app.use((err, req, res, next) => {
+  console.error("Unhandled server error:", err);
+  res.status(500).json({ message: "Server error" });
+});
+
 // =============================
 // ✅ CRON JOB
 // =============================
+
 require("./utils/attendanceCron");
 
 // =============================
+<<<<<<< HEAD
+// ✅ SOCKET.IO SETUP
+// =============================
+const { initSocket } = require("./socket");
+
+// =============================
+=======
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
 // ✅ START SERVER (FINAL FIX)
 // =============================
 const startServer = async () => {
@@ -137,12 +173,26 @@ const startServer = async () => {
     console.log("✅ MongoDB Connected");
 
     // 🔥 3. Start Server
+<<<<<<< HEAD
+    const server = app.listen(process.env.PORT, () => {
+      console.log(`🚀 Server running on port ${process.env.PORT}`);
+    });
+
+    // 🔥 4. Init Socket.IO
+    initSocket(server);
+    console.log("✅ Socket.IO Initialized");
+=======
     app.listen(process.env.PORT, () => {
       console.log(`🚀 Server running on port ${process.env.PORT}`);
     });
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
   } catch (error) {
     console.error("❌ Server start error:", error);
   }
 };
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
 startServer();

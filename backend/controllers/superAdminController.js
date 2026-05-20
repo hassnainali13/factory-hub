@@ -4,11 +4,18 @@ const User = require("../models/User"); // ✅ User import added
 
 exports.getAllWorkspaces = async (req, res) => {
   try {
+<<<<<<< HEAD
+    const workspaces = await Workspace.find().populate({
+      path: "createdBy",
+      select: "name",
+    });
+=======
     const workspaces = await Workspace.find()
       .populate({
         path: "createdBy",
         select: "name",
       });
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
 
     res.status(200).json({ workspaces });
   } catch (err) {
@@ -22,8 +29,38 @@ exports.approveWorkspace = async (req, res) => {
     const workspace = await Workspace.findByIdAndUpdate(
       req.params.id,
       { status: "active" },
+<<<<<<< HEAD
+      { new: true },
+    ).populate("createdBy", "name role");
+
+    if (!workspace) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    const {
+      createNotification,
+    } = require("../controllers/notificationController");
+    if (workspace.createdBy) {
+      await createNotification(
+        "workspace_approved",
+        "Workspace Approved",
+        `Your workspace '${workspace.name}' has been approved and is now active. Welcome to FactoryHub!`,
+        {
+          workspaceId: workspace._id,
+          workspaceName: workspace.name,
+          workspaceLogo: workspace.logo,
+          userId: workspace.createdBy._id,
+          userName: workspace.createdBy.name,
+          userRole: workspace.createdBy.role || "user",
+          recipients: [workspace.createdBy._id],
+        },
+      );
+    }
+
+=======
       { new: true }
     );
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
     res.json({ message: "Workspace approved", workspace });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -69,7 +106,11 @@ exports.updateUserRole = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       userId,
       { role },
+<<<<<<< HEAD
+      { new: true },
+=======
       { new: true }
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
     ).select("name email role");
 
     if (!user) {
@@ -81,4 +122,8 @@ exports.updateUserRole = async (req, res) => {
     console.error("Update user role error:", err);
     res.status(500).json({ message: "Server error" });
   }
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279

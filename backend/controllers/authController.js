@@ -392,7 +392,15 @@ const createToken = (payload) => {
 // ==========================
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role } = req.body || {};
+
+    console.log("[REGISTER] request body:", req.body);
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        message: "Missing required fields: name, email, password",
+      });
+    }
 
     const exist = await User.findOne({ email });
     if (exist) {
@@ -449,6 +457,24 @@ exports.verifyOTP = async (req, res) => {
 
     await TempUser.deleteOne({ email });
 
+<<<<<<< HEAD
+    const {
+      createNotification,
+    } = require("../controllers/notificationController");
+    await createNotification(
+      "new_user_registration",
+      "New User Registered",
+      `${user.name} has completed registration as a ${user.role}.`,
+      {
+        userId: user._id,
+        userName: user.name,
+        userRole: user.role,
+        isSystem: true,
+      },
+    );
+
+=======
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
     res.json({ message: "Account created", userId: user._id });
   } catch (err) {
     console.error(err);
@@ -584,13 +610,26 @@ exports.login = async (req, res) => {
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ message: "Invalid credentials" });
 
+<<<<<<< HEAD
+=======
     const token = createToken({ userId: user._id, role: user.role });
 
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
     const resolvedWorkspaceId =
       user.workspaceId ||
       (await resolveWorkspaceId({ userId: user._id })) ||
       null;
 
+<<<<<<< HEAD
+    const token = createToken({
+      userId: user._id,
+      role: user.role,
+      workspaceId: resolvedWorkspaceId,
+      departmentId: user.departmentId || null,
+    });
+
+=======
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
     let workspaceStatus = null;
     if (resolvedWorkspaceId) {
       const workspace =

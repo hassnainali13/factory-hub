@@ -138,6 +138,36 @@ exports.sendDepartmentRequest = async (req, res) => {
     user.role = "department_head";
     await user.save();
 
+<<<<<<< HEAD
+    // Notify workspace managers about the head request
+    try {
+      const {
+        createNotification,
+      } = require("../controllers/notificationController");
+      const workspace = await Workspace.findById(department.workspaceId).select(
+        "name logo",
+      );
+      await createNotification(
+        "department_head_request",
+        "Department Head Request",
+        `${user.name} has requested to become head of ${department.department || department.name}.`,
+        {
+          workspaceId: department.workspaceId,
+          workspaceName: workspace?.name,
+          workspaceLogo: workspace?.logo,
+          departmentId: department._id,
+          departmentName: department.department || department.name,
+          userId: user._id,
+          userName: user.name,
+          userRole: user.role,
+        },
+      );
+    } catch (notifErr) {
+      console.error("Department request notification error:", notifErr.message);
+    }
+
+=======
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
     res.json({ message: "Tumhari request General Manager ko chali gai hai" });
   } catch (err) {
     console.error("sendDepartmentRequest error:", err);
@@ -206,6 +236,39 @@ exports.sendDepartmentHeadRequest = async (req, res) => {
     user.role = "department_head";
     await user.save();
 
+<<<<<<< HEAD
+    // Notify workspace managers about the head request (request from DepartmentHeadRequest page)
+    try {
+      const {
+        createNotification,
+      } = require("../controllers/notificationController");
+      const workspace = await Workspace.findById(department.workspaceId).select(
+        "name logo",
+      );
+      await createNotification(
+        "department_head_request",
+        "Department Head Request",
+        `${user.name} has requested to become head of ${department.department || department.name}.`,
+        {
+          workspaceId: department.workspaceId,
+          workspaceName: workspace?.name,
+          workspaceLogo: workspace?.logo,
+          departmentId: department._id,
+          departmentName: department.department || department.name,
+          userId: user._id,
+          userName: user.name,
+          userRole: user.role,
+        },
+      );
+    } catch (notifErr) {
+      console.error(
+        "Department head request notification error:",
+        notifErr.message,
+      );
+    }
+
+=======
+>>>>>>> a5ab706ec7fc971fe8a227d2c102d8441fb95279
     res.json({ message: "Department head request sent successfully" });
   } catch (err) {
     console.error("sendDepartmentHeadRequest error:", err);
